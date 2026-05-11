@@ -67,8 +67,11 @@ export default async function MundoPage() {
             <Link href="/mundo" className="text-[#e12b2b]">
               Mundo
             </Link>
-            <Link href="/supa-test" className="transition hover:text-[#e12b2b]">
-              Conexión
+            <Link href="/registro-global" className="transition hover:text-[#e12b2b]">
+              Registro
+            </Link>
+            <Link href="/facciones" className="transition hover:text-[#e12b2b]">
+              Facciones
             </Link>
           </nav>
         </div>

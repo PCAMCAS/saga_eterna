@@ -16,8 +16,11 @@ export default function Home() {
             <a href="/mundo" className="transition hover:text-[#e12b2b]">
               Mundo
             </a>
-            <a href="/supa-test" className="transition hover:text-[#e12b2b]">
-              Conexión
+            <a href="/registro-global" className="transition hover:text-[#e12b2b]">
+              Registro
+            </a>
+            <a href="/facciones" className="transition hover:text-[#e12b2b]">
+              Facciones
             </a>
           </nav>
         </div>
