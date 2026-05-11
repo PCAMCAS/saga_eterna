@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  kingdomId String?
+  kingdom   Kingdom? @relation(fields: [kingdomId], references: [id])
+
+  actions PlayerAction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Kingdom {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  color       String  @default("#d6a13a")
+
+  capitalId String?    @unique
+  capital   Territory? @relation("KingdomCapital", fields: [capitalId], references: [id])
+
+  users        User[]
+  territories  Territory[]     @relation("TerritoryOwner")
+  movements    TroopMovement[]
+  actions      PlayerAction[]
+  logsAsActor  GlobalLog[]     @relation("ActorKingdom")
+  logsAsTarget GlobalLog[]     @relation("TargetKingdom")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Territory {
+  id   String        @id @default(cuid())
+  name String        @unique
+  type TerritoryType @default(CITY)
+
+  x Float
+  y Float
+
+  soldiers Int @default(0)
+
+  ownerId String
+  owner   Kingdom @relation("TerritoryOwner", fields: [ownerId], references: [id])
+
+  capitalOf Kingdom? @relation("KingdomCapital")
+
+  routesFrom Route[] @relation("RouteFrom")
+  routesTo   Route[] @relation("RouteTo")
+
+  movementsFrom TroopMovement[] @relation("MovementOrigin")
+  movementsTo   TroopMovement[] @relation("MovementTarget")
+
+  actionsFrom PlayerAction[] @relation("ActionOrigin")
+  actionsTo   PlayerAction[] @relation("ActionTarget")
+
+  logs GlobalLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Route {
+  id String @id @default(cuid())
+
+  fromId String
+  from   Territory @relation("RouteFrom", fields: [fromId], references: [id])
+
+  toId String
+  to   Territory @relation("RouteTo", fields: [toId], references: [id])
+
+  travelHours Int @default(24)
+
+  createdAt DateTime @default(now())
+
+  @@unique([fromId, toId])
+}
+
+model TroopMovement {
+  id String @id @default(cuid())
+
+  kingdomId String
+  kingdom   Kingdom @relation(fields: [kingdomId], references: [id])
+
+  originId String
+  origin   Territory @relation("MovementOrigin", fields: [originId], references: [id])
+
+  targetId String
+  target   Territory @relation("MovementTarget", fields: [targetId], references: [id])
+
+  soldiers Int
+  type     MovementType
+  status   MovementStatus @default(TRAVELING)
+
+  departureAt DateTime  @default(now())
+  arrivalAt   DateTime
+  resolvedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlayerAction {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  kingdomId String
+  kingdom   Kingdom @relation(fields: [kingdomId], references: [id])
+
+  type    PlayerActionType
+  gameDay Int
+
+  originId String?
+  origin   Territory? @relation("ActionOrigin", fields: [originId], references: [id])
+
+  targetId String
+  target   Territory @relation("ActionTarget", fields: [targetId], references: [id])
+
+  soldiers Int?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, type, gameDay])
+}
+
+model GlobalLog {
+  id String @id @default(cuid())
+
+  gameDay Int
+  year    Int           @default(792)
+  message String
+  type    GlobalLogType
+
+  actorKingdomId String?
+  actorKingdom   Kingdom? @relation("ActorKingdom", fields: [actorKingdomId], references: [id])
+
+  targetKingdomId String?
+  targetKingdom   Kingdom? @relation("TargetKingdom", fields: [targetKingdomId], references: [id])
+
+  territoryId String?
+  territory   Territory? @relation(fields: [territoryId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model GameState {
+  id          String @id @default(cuid())
+  currentDay  Int    @default(1)
+  currentYear Int    @default(792)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TerritoryType {
+  CAPITAL
+  CITY
+  STATION
+}
+
+enum MovementType {
+  REINFORCEMENT
+  ATTACK
+}
+
+enum MovementStatus {
+  TRAVELING
+  RESOLVED
+  CANCELLED
+}
+
+enum PlayerActionType {
+  REINFORCE
+  ATTACK
+  SCOUT
+}
+
+enum GlobalLogType {
+  CONQUEST
+  DEFENSE
+  SCOUT
+  REINFORCEMENT
+  SYSTEM
+}
