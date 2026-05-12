@@ -125,7 +125,8 @@ begin
         soldiers,
         route_hours,
         departure_day,
-        arrival_day
+        arrival_day,
+        is_automatic
       )
       values (
         -- Movimiento automático del sistema: lo asociamos al primer jugador del reino si existe.
@@ -147,7 +148,8 @@ begin
         v_auto_reinforcement_amount,
         24,
         v_new_day,
-        v_new_day + 1
+        v_new_day + 1,
+        true
       );
 
       v_auto_reinforcements_created := v_auto_reinforcements_created + 1;

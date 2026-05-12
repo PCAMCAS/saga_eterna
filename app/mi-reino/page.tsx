@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { selectKingdom, signOut } from "./actions";
 import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
+import { AdvanceDayPanel } from "./advance-day-panel";
 
 type Kingdom = {
   id: string;
@@ -67,6 +68,7 @@ type TroopMovement = {
   route_hours: number;
   departure_day: number;
   arrival_day: number;
+  is_automatic: boolean;
 };
 
 function formatSoldiers(value: number) {
@@ -185,7 +187,7 @@ export default async function MiReinoPage() {
       supabase
         .from("troop_movements")
         .select(
-          "id, movement_type, status, source_territory_id, target_territory_id, soldiers, route_hours, departure_day, arrival_day",
+          "id, movement_type, status, source_territory_id, target_territory_id, soldiers, route_hours, departure_day, arrival_day, is_automatic",
         )
         .eq("status", "IN_TRANSIT")
         .order("arrival_day", { ascending: true }),
@@ -1042,6 +1044,11 @@ export default async function MiReinoPage() {
                   <DailyActionsPanel
                     territories={scoutTargets}
                     scoutUsed={scoutUsed}
+                    currentDay={currentDay}
+                    currentYear={currentYear}
+                  />
+
+                  <AdvanceDayPanel
                     currentDay={currentDay}
                     currentYear={currentYear}
                   />
