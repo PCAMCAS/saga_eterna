@@ -378,3 +378,71 @@ export async function advanceGameDay(
     message: result?.message ?? "No se pudo avanzar el día.",
   };
 }
+
+export async function resolveTerritoryDispute(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const disputeId = String(formData.get("disputeId") ?? "");
+  const winnerKingdomId = String(formData.get("winnerKingdomId") ?? "");
+
+  if (!disputeId || !winnerKingdomId) {
+    return {
+      ok: false,
+      message: "Debes seleccionar disputa y ganador.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user?.email) {
+    return {
+      ok: false,
+      message: "Debes iniciar sesión.",
+    };
+  }
+
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!adminEmails.includes(user.email.toLowerCase())) {
+    return {
+      ok: false,
+      message: "No tienes permiso para resolver disputas.",
+    };
+  }
+
+  const { data, error } = await supabase.rpc("resolve_territory_dispute", {
+    p_dispute_id: disputeId,
+    p_winner_kingdom_id: winnerKingdomId,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+
+  const result = data as {
+    ok?: boolean;
+    message?: string;
+  } | null;
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/mapa");
+  revalidatePath("/mundo");
+  revalidatePath("/registro-global");
+
+  return {
+    ok: Boolean(result?.ok),
+    message: result?.message ?? "No se pudo resolver la disputa.",
+  };
+}

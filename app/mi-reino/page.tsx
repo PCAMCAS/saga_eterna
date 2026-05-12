@@ -4,6 +4,7 @@ import { selectKingdom, signOut } from "./actions";
 import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
 import { AdvanceDayPanel } from "./advance-day-panel";
+import { AdminDisputesPanel } from "./admin-disputes-panel";
 
 type Kingdom = {
   id: string;
@@ -71,6 +72,16 @@ type TroopMovement = {
   is_automatic: boolean;
 };
 
+type TerritoryDispute = {
+  id: string;
+  territory_id: string;
+  attacker_kingdom_id: string;
+  defender_kingdom_id: string;
+  attacker_soldiers: number;
+  defender_soldiers_at_open: number;
+  opened_day: number;
+};
+
 function formatSoldiers(value: number) {
   return value.toLocaleString("es-ES");
 }
@@ -105,6 +116,7 @@ export default async function MiReinoPage() {
   let playerActions: PlayerAction[] = [];
   let publicLogs: GlobalLog[] = [];
   let troopMovements: TroopMovement[] = [];
+  let territoryDisputes: TerritoryDispute[] = [];
 
   let adjacentTerritories: {
     origin: Territory;
@@ -161,6 +173,7 @@ export default async function MiReinoPage() {
       { data: actionData },
       { data: logData },
       { data: movementData },
+      { data: disputeData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
       supabase.from("territories").select("*").order("name"),
@@ -192,6 +205,13 @@ export default async function MiReinoPage() {
         .eq("status", "IN_TRANSIT")
         .eq("kingdom_id", profile?.kingdom_id ?? "00000000-0000-0000-0000-000000000000")
         .order("arrival_day", { ascending: true }),
+      supabase
+        .from("territory_disputes")
+        .select(
+          "id, territory_id, attacker_kingdom_id, defender_kingdom_id, attacker_soldiers, defender_soldiers_at_open, opened_day",
+        )
+        .eq("status", "OPEN")
+        .order("opened_day", { ascending: true }),
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
@@ -200,6 +220,7 @@ export default async function MiReinoPage() {
     playerActions = (actionData ?? []) as PlayerAction[];
     publicLogs = (logData ?? []) as GlobalLog[];
     troopMovements = (movementData ?? []) as TroopMovement[];
+    territoryDisputes = (disputeData ?? []) as TerritoryDispute[];
 
     if (gameStateData) {
       currentDay = Number(gameStateData.current_day);
@@ -1059,10 +1080,18 @@ export default async function MiReinoPage() {
                   />
 
                   {isAdmin && (
-                    <AdvanceDayPanel
-                      currentDay={currentDay}
-                      currentYear={currentYear}
-                    />
+                    <>
+                      <AdvanceDayPanel
+                        currentDay={currentDay}
+                        currentYear={currentYear}
+                      />
+
+                      <AdminDisputesPanel
+                        disputes={territoryDisputes}
+                        territories={allTerritories}
+                        kingdoms={kingdoms}
+                      />
+                    </>
                   )}
                 </aside>
               </div>

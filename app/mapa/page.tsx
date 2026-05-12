@@ -17,6 +17,7 @@ type Territory = {
   y: number;
   soldiers: number | null;
   owner_kingdom_id: string | null;
+  is_disputed: boolean;
 };
 
 type Route = {

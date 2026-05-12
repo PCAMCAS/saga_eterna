@@ -26,6 +26,7 @@ type Territory = {
   y: number;
   soldiers: number | null;
   owner_kingdom_id: string | null;
+  is_disputed: boolean;
 };
 
 type Route = {
@@ -409,8 +410,12 @@ export function MapaInteractivo({
                       isSelected ? "outline outline-2 outline-white" : "",
                     ].join(" ")}
                     style={{
-                      backgroundColor: owner?.color ?? "#d7d7d7",
-                      color: owner?.color ?? "#d7d7d7",
+                      backgroundColor: territory.is_disputed
+                        ? "#dc2626"
+                        : owner?.color ?? "#d7d7d7",
+                      color: territory.is_disputed
+                        ? "#dc2626"
+                        : owner?.color ?? "#d7d7d7",
                     }}
                   />
 
@@ -555,6 +560,15 @@ export function MapaInteractivo({
                         {selectedTerritoryOwner?.name ?? "Sin dueño"}
                       </span>
                     </p>
+
+                    {selectedTerritory.is_disputed && (
+                      <p>
+                        Estado:{" "}
+                        <span className="font-black text-[#fca5a5]">
+                          En disputa
+                        </span>
+                      </p>
+                    )}
 
                     {!selectedIsStation && selectedIsOwned && (
                       <p>
