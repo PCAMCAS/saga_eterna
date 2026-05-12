@@ -78,7 +78,17 @@ export function PlayerDisputesPanel({
   const renderAttackers = (dispute: TerritoryDispute) => {
     const disputeAttackers = attackers
       .filter((attacker) => attacker.dispute_id === dispute.id)
-      .sort((a, b) => Number(b.soldiers ?? 0) - Number(a.soldiers ?? 0));
+      .sort((a, b) => {
+        const aIsOwn = a.kingdom_id === selectedKingdomId;
+        const bIsOwn = b.kingdom_id === selectedKingdomId;
+
+        if (aIsOwn && !bIsOwn) return -1;
+        if (!aIsOwn && bIsOwn) return 1;
+
+        return kingdomById
+          .get(a.kingdom_id)
+          ?.name.localeCompare(kingdomById.get(b.kingdom_id)?.name ?? "") ?? 0;
+      });
 
     if (disputeAttackers.length === 0) {
       return (
@@ -108,9 +118,13 @@ export function PlayerDisputesPanel({
             >
               <span className="font-black text-[#fff8ef]">
                 {kingdom?.name ?? "Reino desconocido"}
+                {isOwnForce ? " · Tus tropas" : ""}
               </span>
-              <span className={isOwnForce ? "text-[#fde68a]" : "text-[#b6a9a1]"}>
-                {formatSoldiers(Number(attacker.soldiers ?? 0))}
+
+              <span className={isOwnForce ? "text-[#fde68a]" : "text-[#d83a3a]"}>
+                {isOwnForce
+                  ? formatSoldiers(Number(attacker.soldiers ?? 0))
+                  : "Desconocidas"}
               </span>
             </div>
           );
@@ -225,9 +239,7 @@ export function PlayerDisputesPanel({
                     <p className="mt-3 text-sm leading-6 text-[#b6a9a1]">
                       Defensores al abrirse la disputa:{" "}
                       <span className="font-black text-[#fff8ef]">
-                        {formatSoldiers(
-                          Number(dispute.defender_soldiers_at_open ?? 0),
-                        )}
+                        Propios
                       </span>
                     </p>
 
