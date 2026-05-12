@@ -204,10 +204,217 @@ export async function scoutTerritory(
   revalidatePath("/mi-reino");
   revalidatePath("/registro-global");
   revalidatePath("/mundo");
+  revalidatePath("/mapa");
 
   return {
     ok: true,
     message: `Investigación completada: ${targetTerritory.name} tiene ${formattedSoldiers} soldados.`,
+  };
+}
+
+export async function reinforceTerritory(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const fromTerritoryId = String(formData.get("fromTerritoryId") ?? "");
+  const targetTerritoryId = String(formData.get("targetTerritoryId") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+
+  if (!fromTerritoryId || !targetTerritoryId) {
+    return {
+      ok: false,
+      message: "Debes seleccionar origen y destino del refuerzo.",
+    };
+  }
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return {
+      ok: false,
+      message: "La cantidad de soldados debe ser un número entero mayor que 0.",
+    };
+  }
+
+  if (fromTerritoryId === targetTerritoryId) {
+    return {
+      ok: false,
+      message: "El origen y el destino no pueden ser el mismo territorio.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      ok: false,
+      message: "Debes iniciar sesión para reforzar territorios.",
+    };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, kingdom_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError || !profile?.kingdom_id) {
+    return {
+      ok: false,
+      message: "Debes elegir un reino antes de realizar acciones.",
+    };
+  }
+
+  const { data: gameState, error: gameStateError } = await supabase
+    .from("game_state")
+    .select("current_day, current_year")
+    .limit(1)
+    .single();
+
+  if (gameStateError || !gameState) {
+    return {
+      ok: false,
+      message: "No se pudo leer el estado actual del juego.",
+    };
+  }
+
+  const currentDay = Number(gameState.current_day);
+  const currentYear = Number(gameState.current_year);
+
+  const [{ data: fromTerritory }, { data: targetTerritory }] =
+    await Promise.all([
+      supabase
+        .from("territories")
+        .select("id, name, type, soldiers, owner_kingdom_id")
+        .eq("id", fromTerritoryId)
+        .single(),
+      supabase
+        .from("territories")
+        .select("id, name, type, soldiers, owner_kingdom_id")
+        .eq("id", targetTerritoryId)
+        .single(),
+    ]);
+
+  if (!fromTerritory || !targetTerritory) {
+    return {
+      ok: false,
+      message: "No se pudieron leer los territorios seleccionados.",
+    };
+  }
+
+  if (
+    fromTerritory.type === "STATION" ||
+    targetTerritory.type === "STATION"
+  ) {
+    return {
+      ok: false,
+      message: "No puedes reforzar usando nodos de viaje.",
+    };
+  }
+
+  if (
+    fromTerritory.owner_kingdom_id !== profile.kingdom_id ||
+    targetTerritory.owner_kingdom_id !== profile.kingdom_id
+  ) {
+    return {
+      ok: false,
+      message: "Solo puedes reforzar entre territorios de tu propio reino.",
+    };
+  }
+
+  const availableSoldiers = Number(fromTerritory.soldiers ?? 0);
+
+  if (amount > availableSoldiers) {
+    return {
+      ok: false,
+      message: `No hay suficientes soldados en ${fromTerritory.name}. Disponibles: ${availableSoldiers.toLocaleString("es-ES")}.`,
+    };
+  }
+
+  const { data: directRoutes, error: directRouteError } = await supabase
+    .from("routes")
+    .select("id, travel_hours")
+    .or(
+      `and(from_territory_id.eq.${fromTerritoryId},to_territory_id.eq.${targetTerritoryId}),and(from_territory_id.eq.${targetTerritoryId},to_territory_id.eq.${fromTerritoryId})`,
+    )
+    .limit(1);
+
+  if (directRouteError) {
+    return {
+      ok: false,
+      message: directRouteError.message,
+    };
+  }
+
+  const directRoute = directRoutes?.[0] ?? null;
+
+  if (!directRoute) {
+    return {
+      ok: false,
+      message: "Por ahora solo puedes reforzar territorios aliados conectados directamente por una ruta.",
+    };
+  }
+
+  const newFromSoldiers = availableSoldiers - amount;
+  const newTargetSoldiers = Number(targetTerritory.soldiers ?? 0) + amount;
+
+  const { error: updateFromError } = await supabase
+    .from("territories")
+    .update({
+      soldiers: newFromSoldiers,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", fromTerritory.id);
+
+  if (updateFromError) {
+    return {
+      ok: false,
+      message: updateFromError.message,
+    };
+  }
+
+  const { error: updateTargetError } = await supabase
+    .from("territories")
+    .update({
+      soldiers: newTargetSoldiers,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", targetTerritory.id);
+
+  if (updateTargetError) {
+    return {
+      ok: false,
+      message: updateTargetError.message,
+    };
+  }
+
+  const { error: actionError } = await supabase.from("player_actions").insert({
+    user_id: user.id,
+    kingdom_id: profile.kingdom_id,
+    type: "REINFORCE",
+    game_day: currentDay,
+    source_territory_id: fromTerritory.id,
+    target_territory_id: targetTerritory.id,
+    soldiers: amount,
+  });
+
+  if (actionError) {
+    return {
+      ok: false,
+      message: actionError.message,
+    };
+  }
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/mundo");
+  revalidatePath("/mapa");
+
+  return {
+    ok: true,
+    message: `Refuerzo enviado: ${amount.toLocaleString("es-ES")} soldados desde ${fromTerritory.name} hacia ${targetTerritory.name}.`,
   };
 }
 
