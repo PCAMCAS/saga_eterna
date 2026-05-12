@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { selectKingdom, signOut } from "./actions";
 import { DailyActionsPanel } from "./daily-actions-panel";
+import { TroopMovementsPanel } from "./troop-movements-panel";
 
 type Kingdom = {
   id: string;
@@ -56,6 +57,18 @@ type GlobalLog = {
   created_at: string | null;
 };
 
+type TroopMovement = {
+  id: string;
+  movement_type: "REINFORCE" | "ATTACK";
+  status: "IN_TRANSIT" | "RESOLVED" | "CANCELLED";
+  source_territory_id: string;
+  target_territory_id: string;
+  soldiers: number;
+  route_hours: number;
+  departure_day: number;
+  arrival_day: number;
+};
+
 function formatSoldiers(value: number) {
   return value.toLocaleString("es-ES");
 }
@@ -89,6 +102,7 @@ export default async function MiReinoPage() {
   let allRoutes: Route[] = [];
   let playerActions: PlayerAction[] = [];
   let publicLogs: GlobalLog[] = [];
+  let troopMovements: TroopMovement[] = [];
 
   let adjacentTerritories: {
     origin: Territory;
@@ -144,6 +158,7 @@ export default async function MiReinoPage() {
       { data: gameStateData },
       { data: actionData },
       { data: logData },
+      { data: movementData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
       supabase.from("territories").select("*").order("name"),
@@ -167,6 +182,13 @@ export default async function MiReinoPage() {
         )
         .order("created_at", { ascending: false })
         .limit(30),
+      supabase
+        .from("troop_movements")
+        .select(
+          "id, movement_type, status, source_territory_id, target_territory_id, soldiers, route_hours, departure_day, arrival_day",
+        )
+        .eq("status", "IN_TRANSIT")
+        .order("arrival_day", { ascending: true }),
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
@@ -174,6 +196,7 @@ export default async function MiReinoPage() {
     allRoutes = (routeData ?? []) as Route[];
     playerActions = (actionData ?? []) as PlayerAction[];
     publicLogs = (logData ?? []) as GlobalLog[];
+    troopMovements = (movementData ?? []) as TroopMovement[];
 
     if (gameStateData) {
       currentDay = Number(gameStateData.current_day);
@@ -639,6 +662,12 @@ export default async function MiReinoPage() {
                       </table>
                     </div>
                   </section>
+
+                  <TroopMovementsPanel
+                    movements={troopMovements}
+                    territories={allTerritories}
+                    currentDay={currentDay}
+                  />
 
                   <section className="grid gap-8 lg:grid-cols-2">
                     <div className="border border-[#251014] bg-black/45">
