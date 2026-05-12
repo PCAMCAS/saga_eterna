@@ -3,8 +3,6 @@ import { createClient } from "@/utils/supabase/server";
 import { selectKingdom, signOut } from "./actions";
 import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
-import { AdvanceDayPanel } from "./advance-day-panel";
-import { AdminDisputesPanel } from "./admin-disputes-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
 import { ScoutReportsPanel } from "./scout-reports-panel";
 
@@ -1184,10 +1182,19 @@ export default async function MiReinoPage({
                       {user.email}
                     </p>
 
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        className="mt-6 flex w-full justify-center border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                      >
+                        Panel admin
+                      </Link>
+                    )}
+
                     <form action={signOut}>
                       <button
                         type="submit"
-                        className="mt-6 w-full border border-[#3a0c12] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:border-[#c3222b] hover:bg-[#b91c1c]"
+                        className="mt-4 w-full border border-[#3a0c12] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:border-[#c3222b] hover:bg-[#b91c1c]"
                       >
                         Cerrar sesión
                       </button>
@@ -1201,21 +1208,7 @@ export default async function MiReinoPage({
                     currentYear={currentYear}
                   />
 
-                  {isAdmin && (
-                    <>
-                      <AdvanceDayPanel
-                        currentDay={currentDay}
-                        currentYear={currentYear}
-                      />
 
-                      <AdminDisputesPanel
-                        disputes={territoryDisputes}
-                        attackers={territoryDisputeAttackers}
-                        territories={allTerritories}
-                        kingdoms={kingdoms}
-                      />
-                    </>
-                  )}
                 </aside>
               </div>
             ) : (
