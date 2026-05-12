@@ -34,6 +34,16 @@ type Profile = {
   kingdom_id: string | null;
 };
 
+type TerritoryDispute = {
+  id: string;
+  territory_id: string;
+  attacker_kingdom_id: string;
+  defender_kingdom_id: string;
+  attacker_soldiers: number;
+  defender_soldiers_at_open: number;
+  opened_day: number;
+};
+
 export default async function MapaPage() {
   const supabase = await createClient();
 
@@ -51,6 +61,7 @@ export default async function MapaPage() {
     { data: territories },
     { data: routes },
     { data: gameState },
+    { data: disputes },
   ] = await Promise.all([
     supabase.from("kingdoms").select("*").order("name"),
     supabase.from("territories").select("*").order("name"),
@@ -60,6 +71,12 @@ export default async function MapaPage() {
       .select("current_day, current_year")
       .limit(1)
       .single(),
+    supabase
+      .from("territory_disputes")
+      .select(
+        "id, territory_id, attacker_kingdom_id, defender_kingdom_id, attacker_soldiers, defender_soldiers_at_open, opened_day",
+      )
+      .eq("status", "OPEN"),
   ]);
 
   if (gameState) {
@@ -110,6 +127,7 @@ export default async function MapaPage() {
       scoutUsed={scoutUsed}
       currentDay={currentDay}
       currentYear={currentYear}
+      disputes={(disputes ?? []) as TerritoryDispute[]}
     />
   );
 }

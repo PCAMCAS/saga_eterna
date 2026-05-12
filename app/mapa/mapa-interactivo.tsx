@@ -37,6 +37,16 @@ type Route = {
   route_type: "LAND" | "SEA";
 };
 
+type TerritoryDispute = {
+  id: string;
+  territory_id: string;
+  attacker_kingdom_id: string;
+  defender_kingdom_id: string;
+  attacker_soldiers: number;
+  defender_soldiers_at_open: number;
+  opened_day: number;
+};
+
 type MapaInteractivoProps = {
   kingdoms: Kingdom[];
   territories: Territory[];
@@ -46,6 +56,7 @@ type MapaInteractivoProps = {
   scoutUsed: boolean;
   currentDay: number;
   currentYear: number;
+  disputes: TerritoryDispute[];
 };
 
 const SEA_NODE_NAMES = new Set([
@@ -75,6 +86,7 @@ export function MapaInteractivo({
   scoutUsed,
   currentDay,
   currentYear,
+  disputes,
 }: MapaInteractivoProps) {
   const router = useRouter();
   const [showLandRoutes, setShowLandRoutes] = useState(true);
@@ -148,6 +160,23 @@ export function MapaInteractivo({
     Boolean(selectedKingdomId) &&
     selectedTerritory?.owner_kingdom_id !== selectedKingdomId;
 
+  const selectedDispute = selectedTerritory
+    ? disputes.find(
+        (dispute) => dispute.territory_id === selectedTerritory.id,
+      ) ?? null
+    : null;
+
+  const selectedIsDisputeAttacker =
+    Boolean(selectedKingdomId) &&
+    selectedDispute?.attacker_kingdom_id === selectedKingdomId;
+
+  const selectedIsDisputeDefender =
+    Boolean(selectedKingdomId) &&
+    selectedDispute?.defender_kingdom_id === selectedKingdomId;
+
+  const canReinforceSelected =
+    selectedIsOwned || selectedIsDisputeAttacker || selectedIsDisputeDefender;
+
   const ownedTerritories = useMemo(() => {
     if (!selectedKingdomId) return [];
 
@@ -161,7 +190,7 @@ export function MapaInteractivo({
   }, [selectedKingdomId, territories]);
 
   const reinforcementOrigins = useMemo(() => {
-    if (!selectedTerritory || !selectedIsOwned) return [];
+    if (!selectedTerritory || !canReinforceSelected) return [];
 
     const connectedIds = new Set<string>();
 
@@ -182,7 +211,7 @@ export function MapaInteractivo({
           connectedIds.has(territory.id),
       )
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [ownedTerritories, routes, selectedIsOwned, selectedTerritory]);
+  }, [canReinforceSelected, ownedTerritories, routes, selectedTerritory]);
 
   const attackOrigins = useMemo(() => {
     if (!selectedTerritory || !selectedIsEnemy || !selectedKingdomId) return [];
@@ -241,7 +270,7 @@ export function MapaInteractivo({
     Boolean(userEmail) &&
     Boolean(selectedKingdomId) &&
     Boolean(selectedTerritory) &&
-    selectedIsOwned &&
+    canReinforceSelected &&
     hasReinforcementOrigins &&
     hasAvailableReinforcementSoldiers &&
     !reinforcePending;
@@ -609,14 +638,16 @@ export function MapaInteractivo({
                     <div className="border border-[#251014] bg-black/45 p-4 text-sm leading-6 text-[#b6a9a1]">
                       Los nodos de viaje no tienen acciones directas.
                     </div>
-                  ) : selectedIsOwned ? (
+                  ) : canReinforceSelected ? (
                     <form
                       key={`reinforce-${selectedTerritory.id}-${selectedTerritory.soldiers ?? "hidden"}-${reinforceState.message}`}
                       action={reinforceAction}
                       className="border border-[#251014] bg-black/45 p-4"
                     >
                       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
-                        Reforzar territorio
+                        {selectedIsDisputeAttacker
+                          ? "Reforzar asedio"
+                          : "Reforzar territorio"}
                       </p>
 
                       <input
@@ -668,10 +699,12 @@ export function MapaInteractivo({
                           ? "Enviando..."
                           : reinforcementOrigins.length === 0
                             ? "Sin origen conectado"
-                            : "Enviar refuerzo"}
+                            : selectedIsDisputeAttacker
+                              ? "Enviar al asedio"
+                              : "Enviar refuerzo"}
                       </button>
                     </form>
-                  ) : selectedIsEnemy ? (
+                  ) : selectedIsEnemy && !selectedDispute ? (
                     <>
                       <form key={`scout-${selectedTerritory.id}-${scoutState.message}`} action={scoutAction}>
                         <input
