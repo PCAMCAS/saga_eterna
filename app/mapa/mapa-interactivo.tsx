@@ -75,7 +75,6 @@ export function MapaInteractivo({
   const [showLandNodes, setShowLandNodes] = useState(true);
   const [showSeaNodes, setShowSeaNodes] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
-  const [showCommandBar, setShowCommandBar] = useState(true);
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(
     null,
   );
@@ -108,11 +107,20 @@ export function MapaInteractivo({
     : null;
 
   const selectedIsStation = selectedTerritory?.type === "STATION";
+  const selectedIsOwned =
+    Boolean(selectedTerritory?.owner_kingdom_id) &&
+    selectedTerritory?.owner_kingdom_id === selectedKingdomId;
+
+  const selectedIsEnemy =
+    Boolean(selectedTerritory?.owner_kingdom_id) &&
+    Boolean(selectedKingdomId) &&
+    selectedTerritory?.owner_kingdom_id !== selectedKingdomId;
 
   const canUseScout =
     Boolean(userEmail) &&
     Boolean(selectedKingdomId) &&
     Boolean(selectedTerritory) &&
+    selectedIsEnemy &&
     !selectedIsStation &&
     !scoutUsed &&
     !scoutPending;
@@ -144,7 +152,7 @@ export function MapaInteractivo({
 
       <section className="relative h-screen w-screen pt-[73px]">
         <div className="relative h-full w-full overflow-auto bg-[#050203]">
-          <div className="relative mx-auto min-w-[1500px] max-w-[1900px] pb-28">
+          <div className="relative mx-auto min-w-[1500px] max-w-[1900px]">
             <img
               src="/maps/saga-eterna-map.png"
               alt="Mapa de Saga Eterna"
@@ -329,15 +337,6 @@ export function MapaInteractivo({
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
                     type="checkbox"
-                    checked={showCommandBar}
-                    onChange={() => setShowCommandBar((value) => !value)}
-                  />
-                  Barra táctica
-                </label>
-
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
                     checked={showCities}
                     onChange={() => setShowCities((value) => !value)}
                   />
@@ -391,8 +390,150 @@ export function MapaInteractivo({
               </div>
             </div>
 
+            {selectedTerritory && (
+              <aside className="absolute right-5 top-5 z-20 w-[360px] border border-[#3a0c12] bg-black/85 shadow-2xl backdrop-blur">
+                <div className="border-b border-[#3a0c12] p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#d83a3a]">
+                        Selección
+                      </p>
+
+                      <h2 className="mt-3 text-2xl font-black uppercase leading-tight text-[#fff8ef]">
+                        {selectedTerritory.name}
+                      </h2>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTerritoryId(null)}
+                      className="border border-[#251014] bg-black/70 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd] transition hover:border-[#c3222b] hover:text-[#fff8ef]"
+                    >
+                      X
+                    </button>
+                  </div>
+
+                  <div className="mt-4 space-y-2 text-sm leading-6 text-[#b6a9a1]">
+                    <p>
+                      Tipo:{" "}
+                      <span className="font-black text-[#fff8ef]">
+                        {selectedTerritory.type === "CAPITAL"
+                          ? "Capital"
+                          : selectedTerritory.type === "CITY"
+                            ? "Ciudad"
+                            : isSeaNode(selectedTerritory.name)
+                              ? "Nodo marítimo"
+                              : "Nodo terrestre"}
+                      </span>
+                    </p>
+
+                    <p>
+                      Dueño:{" "}
+                      <span className="font-black text-[#fff8ef]">
+                        {selectedTerritoryOwner?.name ?? "Sin dueño"}
+                      </span>
+                    </p>
+
+                    {!selectedIsStation && (
+                      <p>
+                        Soldados:{" "}
+                        <span className="font-black text-[#fff8ef]">
+                          {selectedTerritory.soldiers.toLocaleString("es-ES")}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4 p-5">
+                  {!userEmail ? (
+                    <Link
+                      href="/login"
+                      className="block border border-[#c3222b] bg-black/70 px-5 py-3 text-center text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                    >
+                      Entrar para actuar
+                    </Link>
+                  ) : !selectedKingdomId ? (
+                    <Link
+                      href="/mi-reino"
+                      className="block border border-[#c3222b] bg-black/70 px-5 py-3 text-center text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                    >
+                      Elegir reino
+                    </Link>
+                  ) : selectedIsStation ? (
+                    <div className="border border-[#251014] bg-black/45 p-4 text-sm leading-6 text-[#b6a9a1]">
+                      Los nodos de viaje no tienen acciones directas.
+                    </div>
+                  ) : selectedIsOwned ? (
+                    <button
+                      type="button"
+                      className="w-full border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                    >
+                      Reforzar territorio
+                    </button>
+                  ) : selectedIsEnemy ? (
+                    <>
+                      <form action={scoutAction}>
+                        <input
+                          type="hidden"
+                          name="targetTerritoryId"
+                          value={selectedTerritory.id}
+                        />
+
+                        <button
+                          type="submit"
+                          disabled={!canUseScout}
+                          className="w-full border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          {scoutPending
+                            ? "Investigando..."
+                            : scoutUsed
+                              ? "Investigación usada"
+                              : "Investigar tropas"}
+                        </button>
+                      </form>
+
+                      <button
+                        type="button"
+                        className="w-full border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                      >
+                        Atacar territorio
+                      </button>
+                    </>
+                  ) : (
+                    <div className="border border-[#251014] bg-black/45 p-4 text-sm leading-6 text-[#b6a9a1]">
+                      Este territorio no pertenece a ningún reino.
+                    </div>
+                  )}
+
+                  {scoutState.message && (
+                    <div
+                      className={[
+                        "border p-4 text-sm leading-6",
+                        scoutState.ok
+                          ? "border-[#3f6212] text-[#bef264]"
+                          : "border-[#7f1d1d] text-[#fca5a5]",
+                      ].join(" ")}
+                    >
+                      {scoutState.message}
+                    </div>
+                  )}
+
+                  <div className="border border-[#251014] bg-black/45 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
+                      Día {currentDay} del {currentYear} d.C.
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
+                      Las acciones disponibles dependen de si el territorio es
+                      aliado, enemigo o un nodo de viaje.
+                    </p>
+                  </div>
+                </div>
+              </aside>
+            )}
+
             {showLegend && (
-              <div className="absolute bottom-32 right-5 z-20 border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
+              <div className="absolute bottom-5 right-5 z-20 border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
                 <p className="font-black uppercase tracking-[0.28em] text-[#d83a3a]">
                   Leyenda
                 </p>
@@ -420,138 +561,6 @@ export function MapaInteractivo({
                   <div className="flex items-center gap-3">
                     <span className="h-px w-8 border-t border-dashed border-sky-300" />
                     <span>Ruta marítima</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {showCommandBar && (
-              <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#3a0c12] bg-black/90 shadow-[0_-20px_70px_rgba(0,0,0,0.65)] backdrop-blur">
-                <div className="mx-auto grid max-w-[1900px] gap-4 px-6 py-4 lg:grid-cols-[1fr_auto]">
-                  <div className="flex min-w-0 items-center gap-5">
-                    <div className="hidden h-14 w-1 bg-[#d83a3a] lg:block" />
-
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#d83a3a]">
-                        Barra táctica · Día {currentDay} del {currentYear} d.C.
-                      </p>
-
-                      {selectedTerritory ? (
-                        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
-                          <h2 className="text-2xl font-black uppercase text-[#fff8ef]">
-                            {selectedTerritory.name}
-                          </h2>
-
-                          <span className="text-xs font-black uppercase tracking-[0.22em] text-[#b6a9a1]">
-                            {selectedTerritory.type === "CAPITAL"
-                              ? "Capital"
-                              : selectedTerritory.type === "CITY"
-                                ? "Ciudad"
-                                : isSeaNode(selectedTerritory.name)
-                                  ? "Nodo marítimo"
-                                  : "Nodo terrestre"}
-                          </span>
-
-                          <span className="text-xs font-black uppercase tracking-[0.22em] text-[#b6a9a1]">
-                            Dueño:{" "}
-                            <span className="text-[#fff8ef]">
-                              {selectedTerritoryOwner?.name ?? "Sin dueño"}
-                            </span>
-                          </span>
-
-                          {!selectedIsStation && (
-                            <span className="text-xs font-black uppercase tracking-[0.22em] text-[#b6a9a1]">
-                              Soldados:{" "}
-                              <span className="text-[#fff8ef]">
-                                {selectedTerritory.soldiers.toLocaleString("es-ES")}
-                              </span>
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
-                          Selecciona una ciudad o nodo del mapa para ver sus
-                          acciones disponibles.
-                        </p>
-                      )}
-
-                      {scoutState.message && (
-                        <p
-                          className={[
-                            "mt-2 text-sm font-bold",
-                            scoutState.ok ? "text-[#bef264]" : "text-[#fca5a5]",
-                          ].join(" ")}
-                        >
-                          {scoutState.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-start gap-3 lg:justify-end">
-                    {!userEmail ? (
-                      <Link
-                        href="/login"
-                        className="border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
-                      >
-                        Entrar para actuar
-                      </Link>
-                    ) : !selectedKingdomId ? (
-                      <Link
-                        href="/mi-reino"
-                        className="border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
-                      >
-                        Elegir reino
-                      </Link>
-                    ) : (
-                      <>
-                        <form action={scoutAction}>
-                          <input
-                            type="hidden"
-                            name="targetTerritoryId"
-                            value={selectedTerritory?.id ?? ""}
-                          />
-
-                          <button
-                            type="submit"
-                            disabled={!canUseScout}
-                            className="border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-45"
-                          >
-                            {scoutPending
-                              ? "Investigando..."
-                              : scoutUsed
-                                ? "Investigación usada"
-                                : "Investigar tropas"}
-                          </button>
-                        </form>
-
-                        <button
-                          type="button"
-                          disabled
-                          className="border border-[#251014] bg-black/50 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#7f7470] opacity-70"
-                        >
-                          Reforzar
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled
-                          className="border border-[#251014] bg-black/50 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#7f7470] opacity-70"
-                        >
-                          Atacar
-                        </button>
-                      </>
-                    )}
-
-                    {selectedTerritory && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTerritoryId(null)}
-                        className="border border-[#251014] bg-black/50 px-4 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#d7c9bd] transition hover:border-[#c3222b] hover:text-[#fff8ef]"
-                      >
-                        Limpiar
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
