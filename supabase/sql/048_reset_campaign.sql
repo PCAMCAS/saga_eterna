@@ -93,6 +93,7 @@ set
   current_year = 725,
   current_day = public.real_day_of_year(),
   current_tick = public.real_day_of_year(),
+  last_advanced_real_date = null,
   updated_at = now();
 
 insert into public.global_logs (
