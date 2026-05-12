@@ -5,6 +5,7 @@ import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
 import { AdvanceDayPanel } from "./advance-day-panel";
 import { AdminDisputesPanel } from "./admin-disputes-panel";
+import { PlayerDisputesPanel } from "./player-disputes-panel";
 
 type Kingdom = {
   id: string;
@@ -426,6 +427,26 @@ export default async function MiReinoPage() {
     (log) => log.type === "CONQUEST" && log.game_day === currentDay,
   );
 
+  const ownOpenDisputes = selectedKingdom
+    ? territoryDisputes.filter(
+        (dispute) =>
+          dispute.attacker_kingdom_id === selectedKingdom.id ||
+          dispute.defender_kingdom_id === selectedKingdom.id,
+      )
+    : [];
+
+  const ownSieges = selectedKingdom
+    ? territoryDisputes.filter(
+        (dispute) => dispute.attacker_kingdom_id === selectedKingdom.id,
+      )
+    : [];
+
+  const ownDefenses = selectedKingdom
+    ? territoryDisputes.filter(
+        (dispute) => dispute.defender_kingdom_id === selectedKingdom.id,
+      )
+    : [];
+
   const councilLines: string[] = [];
 
   if (selectedKingdom) {
@@ -450,6 +471,12 @@ export default async function MiReinoPage() {
       );
     } else if (ownedTerritories.length > 0) {
       councilLines.push("Todas las ciudades del reino conservan guarnición.");
+    }
+
+    if (ownOpenDisputes.length > 0) {
+      councilLines.push(
+        `Hay ${ownOpenDisputes.length} disputa${ownOpenDisputes.length === 1 ? "" : "s"} abierta${ownOpenDisputes.length === 1 ? "" : "s"} que requieren resolución presencial.`,
+      );
     }
 
     if (enemyFrontiers.length > 0) {
@@ -609,6 +636,27 @@ export default async function MiReinoPage() {
                         {enemyFrontiers.length}
                       </p>
                     </article>
+
+                    <article className="border border-[#7f1d1d] bg-black/45 p-5 md:col-span-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#fca5a5]">
+                        Disputas activas
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-6">
+                        <p className="text-4xl font-black text-[#fff8ef]">
+                          {ownOpenDisputes.length}
+                        </p>
+                        <p className="self-end text-sm leading-6 text-[#b6a9a1]">
+                          Asedios propios:{" "}
+                          <span className="font-black text-[#fff8ef]">
+                            {ownSieges.length}
+                          </span>{" "}
+                          · Defensas pendientes:{" "}
+                          <span className="font-black text-[#fff8ef]">
+                            {ownDefenses.length}
+                          </span>
+                        </p>
+                      </div>
+                    </article>
                   </section>
 
                   <section className="border border-[#251014] bg-black/45">
@@ -700,6 +748,17 @@ export default async function MiReinoPage() {
                     movements={troopMovements}
                     territories={allTerritories}
                     currentDay={currentDay}
+                  />
+
+                  <PlayerDisputesPanel
+                    disputes={territoryDisputes.filter(
+                      (dispute) =>
+                        dispute.attacker_kingdom_id === selectedKingdom.id ||
+                        dispute.defender_kingdom_id === selectedKingdom.id,
+                    )}
+                    territories={allTerritories}
+                    kingdoms={kingdoms}
+                    selectedKingdomId={selectedKingdom.id}
                   />
 
                   <section className="grid gap-8 lg:grid-cols-2">
