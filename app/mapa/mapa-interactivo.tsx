@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
-import { ActionState, scoutTerritory } from "@/app/mi-reino/actions";
+import {
+  ActionState,
+  attackTerritory,
+  reinforceTerritory,
+  scoutTerritory,
+} from "@/app/mi-reino/actions";
 
 type Kingdom = {
   id: string;
@@ -18,7 +23,7 @@ type Territory = {
   type: "CAPITAL" | "CITY" | "STATION";
   x: number;
   y: number;
-  soldiers: number;
+  soldiers: number | null;
   owner_kingdom_id: string | null;
 };
 
@@ -84,6 +89,16 @@ export function MapaInteractivo({
     initialActionState,
   );
 
+  const [reinforceState, reinforceAction, reinforcePending] = useActionState(
+    reinforceTerritory,
+    initialActionState,
+  );
+
+  const [attackState, attackAction, attackPending] = useActionState(
+    attackTerritory,
+    initialActionState,
+  );
+
   const kingdomById = useMemo(() => {
     return new Map(kingdoms.map((kingdom) => [kingdom.id, kingdom]));
   }, [kingdoms]);
@@ -116,6 +131,72 @@ export function MapaInteractivo({
     Boolean(selectedKingdomId) &&
     selectedTerritory?.owner_kingdom_id !== selectedKingdomId;
 
+  const ownedTerritories = useMemo(() => {
+    if (!selectedKingdomId) return [];
+
+    return territories
+      .filter(
+        (territory) =>
+          territory.type !== "STATION" &&
+          territory.owner_kingdom_id === selectedKingdomId,
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [selectedKingdomId, territories]);
+
+  const reinforcementOrigins = useMemo(() => {
+    if (!selectedTerritory || !selectedIsOwned) return [];
+
+    const connectedIds = new Set<string>();
+
+    for (const route of routes) {
+      if (route.to_territory_id === selectedTerritory.id) {
+        connectedIds.add(route.from_territory_id);
+      }
+
+      if (route.from_territory_id === selectedTerritory.id) {
+        connectedIds.add(route.to_territory_id);
+      }
+    }
+
+    return ownedTerritories
+      .filter(
+        (territory) =>
+          territory.id !== selectedTerritory.id &&
+          connectedIds.has(territory.id),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [ownedTerritories, routes, selectedIsOwned, selectedTerritory]);
+
+  const attackOrigins = useMemo(() => {
+    if (!selectedTerritory || !selectedIsEnemy || !selectedKingdomId) return [];
+
+    const connectedIds = new Set<string>();
+
+    for (const route of routes) {
+      if (route.to_territory_id === selectedTerritory.id) {
+        connectedIds.add(route.from_territory_id);
+      }
+
+      if (route.from_territory_id === selectedTerritory.id) {
+        connectedIds.add(route.to_territory_id);
+      }
+    }
+
+    return territories
+      .filter(
+        (territory) =>
+          territory.type !== "STATION" &&
+          territory.owner_kingdom_id === selectedKingdomId &&
+          connectedIds.has(territory.id),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [routes, selectedIsEnemy, selectedKingdomId, selectedTerritory, territories]);
+
+  const hasAttackOrigins = attackOrigins.length > 0;
+  const hasAvailableAttackSoldiers = attackOrigins.some(
+    (territory) => Number(territory.soldiers ?? 0) > 0,
+  );
+
   const canUseScout =
     Boolean(userEmail) &&
     Boolean(selectedKingdomId) &&
@@ -124,6 +205,29 @@ export function MapaInteractivo({
     !selectedIsStation &&
     !scoutUsed &&
     !scoutPending;
+
+  const canAttack =
+    Boolean(userEmail) &&
+    Boolean(selectedKingdomId) &&
+    Boolean(selectedTerritory) &&
+    selectedIsEnemy &&
+    hasAttackOrigins &&
+    hasAvailableAttackSoldiers &&
+    !attackPending;
+
+  const hasReinforcementOrigins = reinforcementOrigins.length > 0;
+  const hasAvailableReinforcementSoldiers = reinforcementOrigins.some(
+    (territory) => Number(territory.soldiers ?? 0) > 0,
+  );
+
+  const canReinforce =
+    Boolean(userEmail) &&
+    Boolean(selectedKingdomId) &&
+    Boolean(selectedTerritory) &&
+    selectedIsOwned &&
+    hasReinforcementOrigins &&
+    hasAvailableReinforcementSoldiers &&
+    !reinforcePending;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-[#f3eee8]">
@@ -320,7 +424,9 @@ export function MapaInteractivo({
                     <p className="text-sm leading-6 text-[#b6a9a1]">
                       Soldados:{" "}
                       <span className="font-black text-[#fff8ef]">
-                        {territory.soldiers.toLocaleString("es-ES")}
+                        {territory.owner_kingdom_id === selectedKingdomId
+                          ? Number(territory.soldiers ?? 0).toLocaleString("es-ES")
+                          : "Desconocidos"}
                       </span>
                     </p>
                   </div>
@@ -391,7 +497,7 @@ export function MapaInteractivo({
             </div>
 
             {selectedTerritory && (
-              <aside className="absolute right-5 top-5 z-20 w-[360px] border border-[#3a0c12] bg-black/85 shadow-2xl backdrop-blur">
+              <aside className="absolute right-5 top-5 z-20 w-[390px] border border-[#3a0c12] bg-black/85 shadow-2xl backdrop-blur">
                 <div className="border-b border-[#3a0c12] p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -434,11 +540,20 @@ export function MapaInteractivo({
                       </span>
                     </p>
 
-                    {!selectedIsStation && (
+                    {!selectedIsStation && selectedIsOwned && (
                       <p>
                         Soldados:{" "}
                         <span className="font-black text-[#fff8ef]">
-                          {selectedTerritory.soldiers.toLocaleString("es-ES")}
+                          {Number(selectedTerritory.soldiers ?? 0).toLocaleString("es-ES")}
+                        </span>
+                      </p>
+                    )}
+
+                    {!selectedIsStation && !selectedIsOwned && (
+                      <p>
+                        Soldados:{" "}
+                        <span className="font-black text-[#d83a3a]">
+                          Desconocidos
                         </span>
                       </p>
                     )}
@@ -465,12 +580,66 @@ export function MapaInteractivo({
                       Los nodos de viaje no tienen acciones directas.
                     </div>
                   ) : selectedIsOwned ? (
-                    <button
-                      type="button"
-                      className="w-full border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                    <form
+                      action={reinforceAction}
+                      className="border border-[#251014] bg-black/45 p-4"
                     >
-                      Reforzar territorio
-                    </button>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
+                        Reforzar territorio
+                      </p>
+
+                      <input
+                        type="hidden"
+                        name="targetTerritoryId"
+                        value={selectedTerritory.id}
+                      />
+
+                      <label className="mt-4 block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                        Origen
+                      </label>
+                      <select
+                        name="fromTerritoryId"
+                        required
+                        disabled={!canReinforce}
+                        className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>
+                          Selecciona ciudad aliada conectada
+                        </option>
+                        {reinforcementOrigins.map((territory) => (
+                          <option key={territory.id} value={territory.id}>
+                            {territory.name} · {Number(territory.soldiers ?? 0).toLocaleString("es-ES")} soldados
+                          </option>
+                        ))}
+                      </select>
+
+                      <label className="mt-4 block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                        Soldados
+                      </label>
+                      <input
+                        type="number"
+                        name="amount"
+                        min="1"
+                        step="1"
+                        required
+                        disabled={!canReinforce}
+                        className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="Cantidad"
+                      />
+
+                      <button
+                        type="submit"
+                        disabled={!canReinforce}
+                        className="mt-4 w-full border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        {reinforcePending
+                          ? "Enviando..."
+                          : reinforcementOrigins.length === 0
+                            ? "Sin origen conectado"
+                            : "Enviar refuerzo"}
+                      </button>
+                    </form>
                   ) : selectedIsEnemy ? (
                     <>
                       <form action={scoutAction}>
@@ -493,12 +662,68 @@ export function MapaInteractivo({
                         </button>
                       </form>
 
-                      <button
-                        type="button"
-                        className="w-full border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                      <form
+                        action={attackAction}
+                        className="border border-[#251014] bg-black/45 p-4"
                       >
-                        Atacar territorio
-                      </button>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
+                          Atacar territorio
+                        </p>
+
+                        <input
+                          type="hidden"
+                          name="targetTerritoryId"
+                          value={selectedTerritory.id}
+                        />
+
+                        <label className="mt-4 block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                          Origen
+                        </label>
+                        <select
+                          name="fromTerritoryId"
+                          required
+                          disabled={!canAttack}
+                          className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>
+                            Selecciona ciudad aliada conectada
+                          </option>
+                          {attackOrigins.map((territory) => (
+                            <option key={territory.id} value={territory.id}>
+                              {territory.name} · {Number(territory.soldiers ?? 0).toLocaleString("es-ES")} soldados
+                            </option>
+                          ))}
+                        </select>
+
+                        <label className="mt-4 block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                          Soldados
+                        </label>
+                        <input
+                          type="number"
+                          name="amount"
+                          min="1"
+                          step="1"
+                          required
+                          disabled={!canAttack}
+                          className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="Cantidad"
+                        />
+
+                        <button
+                          type="submit"
+                          disabled={!canAttack}
+                          className="mt-4 w-full border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          {attackPending
+                            ? "Atacando..."
+                            : !hasAttackOrigins
+                              ? "Sin origen conectado"
+                              : !hasAvailableAttackSoldiers
+                                ? "Sin soldados disponibles"
+                                : "Lanzar ataque"}
+                        </button>
+                      </form>
                     </>
                   ) : (
                     <div className="border border-[#251014] bg-black/45 p-4 text-sm leading-6 text-[#b6a9a1]">
@@ -506,16 +731,16 @@ export function MapaInteractivo({
                     </div>
                   )}
 
-                  {scoutState.message && (
+                  {(scoutState.message || reinforceState.message || attackState.message) && (
                     <div
                       className={[
                         "border p-4 text-sm leading-6",
-                        scoutState.ok
+                        scoutState.ok || reinforceState.ok || attackState.ok
                           ? "border-[#3f6212] text-[#bef264]"
                           : "border-[#7f1d1d] text-[#fca5a5]",
                       ].join(" ")}
                     >
-                      {scoutState.message}
+                      {attackState.message || reinforceState.message || scoutState.message}
                     </div>
                   )}
 
