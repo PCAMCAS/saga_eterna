@@ -234,10 +234,62 @@ export async function reinforceTerritory(
     };
   }
 
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("reinforce_territory_atomic", {
+    p_from_territory_id: fromTerritoryId,
+    p_target_territory_id: targetTerritoryId,
+    p_amount: amount,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+
+  const result = data as {
+    ok?: boolean;
+    message?: string;
+  } | null;
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/mundo");
+  revalidatePath("/mapa");
+
+  return {
+    ok: Boolean(result?.ok),
+    message: result?.message ?? "No se pudo completar el refuerzo.",
+  };
+}
+
+export async function attackTerritory(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const fromTerritoryId = String(formData.get("fromTerritoryId") ?? "");
+  const targetTerritoryId = String(formData.get("targetTerritoryId") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+
+  if (!fromTerritoryId || !targetTerritoryId) {
+    return {
+      ok: false,
+      message: "Debes seleccionar origen y objetivo del ataque.",
+    };
+  }
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return {
+      ok: false,
+      message: "La cantidad de soldados debe ser un número entero mayor que 0.",
+    };
+  }
+
   if (fromTerritoryId === targetTerritoryId) {
     return {
       ok: false,
-      message: "El origen y el destino no pueden ser el mismo territorio.",
+      message: "El origen y el objetivo no pueden ser el mismo territorio.",
     };
   }
 
@@ -251,7 +303,7 @@ export async function reinforceTerritory(
   if (userError || !user) {
     return {
       ok: false,
-      message: "Debes iniciar sesión para reforzar territorios.",
+      message: "Debes iniciar sesión para atacar territorios.",
     };
   }
 
@@ -311,21 +363,33 @@ export async function reinforceTerritory(
   ) {
     return {
       ok: false,
-      message: "No puedes reforzar usando nodos de viaje.",
+      message: "No puedes atacar usando nodos de viaje.",
     };
   }
 
-  if (
-    fromTerritory.owner_kingdom_id !== profile.kingdom_id ||
-    targetTerritory.owner_kingdom_id !== profile.kingdom_id
-  ) {
+  if (fromTerritory.owner_kingdom_id !== profile.kingdom_id) {
     return {
       ok: false,
-      message: "Solo puedes reforzar entre territorios de tu propio reino.",
+      message: "Solo puedes atacar desde territorios de tu propio reino.",
+    };
+  }
+
+  if (targetTerritory.owner_kingdom_id === profile.kingdom_id) {
+    return {
+      ok: false,
+      message: "No puedes atacar un territorio aliado.",
+    };
+  }
+
+  if (!targetTerritory.owner_kingdom_id) {
+    return {
+      ok: false,
+      message: "Este territorio no pertenece a ningún reino.",
     };
   }
 
   const availableSoldiers = Number(fromTerritory.soldiers ?? 0);
+  const defenderSoldiers = Number(targetTerritory.soldiers ?? 0);
 
   if (amount > availableSoldiers) {
     return {
@@ -354,12 +418,13 @@ export async function reinforceTerritory(
   if (!directRoute) {
     return {
       ok: false,
-      message: "Por ahora solo puedes reforzar territorios aliados conectados directamente por una ruta.",
+      message: "Por ahora solo puedes atacar territorios enemigos conectados directamente por una ruta.",
     };
   }
 
   const newFromSoldiers = availableSoldiers - amount;
-  const newTargetSoldiers = Number(targetTerritory.soldiers ?? 0) + amount;
+  const attackersWin = amount > defenderSoldiers;
+  const remainingSoldiers = Math.abs(amount - defenderSoldiers);
 
   const { error: updateFromError } = await supabase
     .from("territories")
@@ -379,7 +444,10 @@ export async function reinforceTerritory(
   const { error: updateTargetError } = await supabase
     .from("territories")
     .update({
-      soldiers: newTargetSoldiers,
+      soldiers: remainingSoldiers,
+      owner_kingdom_id: attackersWin
+        ? profile.kingdom_id
+        : targetTerritory.owner_kingdom_id,
       updated_at: new Date().toISOString(),
     })
     .eq("id", targetTerritory.id);
@@ -394,7 +462,7 @@ export async function reinforceTerritory(
   const { error: actionError } = await supabase.from("player_actions").insert({
     user_id: user.id,
     kingdom_id: profile.kingdom_id,
-    type: "REINFORCE",
+    type: "ATTACK",
     game_day: currentDay,
     source_territory_id: fromTerritory.id,
     target_territory_id: targetTerritory.id,
@@ -408,15 +476,39 @@ export async function reinforceTerritory(
     };
   }
 
+  const message = attackersWin
+    ? `${fromTerritory.name} ha lanzado un ataque contra ${targetTerritory.name}. Tras la batalla, ${targetTerritory.name} ha sido conquistada.`
+    : `${fromTerritory.name} ha lanzado un ataque contra ${targetTerritory.name}. Los defensores han resistido.`;
+
+  const { error: logError } = await supabase.from("global_logs").insert({
+    game_day: currentDay,
+    year: currentYear,
+    message,
+    type: attackersWin ? "CONQUEST" : "ATTACK",
+    territory_id: targetTerritory.id,
+    actor_kingdom_id: profile.kingdom_id,
+  });
+
+  if (logError) {
+    return {
+      ok: false,
+      message: logError.message,
+    };
+  }
+
   revalidatePath("/mi-reino");
+  revalidatePath("/registro-global");
   revalidatePath("/mundo");
   revalidatePath("/mapa");
 
   return {
     ok: true,
-    message: `Refuerzo enviado: ${amount.toLocaleString("es-ES")} soldados desde ${fromTerritory.name} hacia ${targetTerritory.name}.`,
+    message: attackersWin
+      ? `Victoria: ${targetTerritory.name} ha sido conquistada con ${remainingSoldiers.toLocaleString("es-ES")} soldados supervivientes.`
+      : `Ataque rechazado: ${targetTerritory.name} conserva ${remainingSoldiers.toLocaleString("es-ES")} soldados.`,
   };
 }
+
 
 export async function signOut() {
   const supabase = await createClient();
