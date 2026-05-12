@@ -190,6 +190,7 @@ export default async function MiReinoPage() {
           "id, movement_type, status, source_territory_id, target_territory_id, soldiers, route_hours, departure_day, arrival_day, is_automatic",
         )
         .eq("status", "IN_TRANSIT")
+        .eq("kingdom_id", profile?.kingdom_id ?? "00000000-0000-0000-0000-000000000000")
         .order("arrival_day", { ascending: true }),
     ]);
 
