@@ -60,7 +60,7 @@ export default function Home() {
             </a>
 
             <p className="text-xs uppercase tracking-[0.35em] text-[#9f8e84]">
-              Año 792 d.C.
+              Año 725 d.C.
             </p>
           </div>
         </div>

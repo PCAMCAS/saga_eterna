@@ -148,7 +148,9 @@ export default async function MundoPage() {
               <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
                 Año
               </p>
-              <p className="mt-2 text-4xl font-black text-[#fff8ef]">792</p>
+              <p className="mt-2 text-4xl font-black text-[#fff8ef]">
+                {currentYear}
+              </p>
               <p className="font-black uppercase tracking-[0.18em] text-[#b6a9a1]">
                 d.C.
               </p>
