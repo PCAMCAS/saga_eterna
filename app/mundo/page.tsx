@@ -31,6 +31,18 @@ type GlobalLog = {
 export default async function MundoPage() {
   const supabase = await createClient();
 
+  let currentYear = 725;
+
+  const { data: worldGameState } = await supabase
+    .from("game_state")
+    .select("current_year")
+    .limit(1)
+    .maybeSingle();
+
+  if (worldGameState?.current_year) {
+    currentYear = Number(worldGameState.current_year);
+  }
+
   const [{ data: kingdoms }, { data: territories }, { data: logs }] =
     await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
