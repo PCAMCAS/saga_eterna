@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import {
   ActionState,
   attackTerritory,
@@ -74,6 +75,7 @@ export function MapaInteractivo({
   currentDay,
   currentYear,
 }: MapaInteractivoProps) {
+  const router = useRouter();
   const [showLandRoutes, setShowLandRoutes] = useState(true);
   const [showSeaRoutes, setShowSeaRoutes] = useState(true);
   const [showCities, setShowCities] = useState(true);
@@ -98,6 +100,20 @@ export function MapaInteractivo({
     attackTerritory,
     initialActionState,
   );
+
+  useEffect(() => {
+    if (scoutState.ok || reinforceState.ok || attackState.ok) {
+      router.refresh();
+    }
+  }, [
+    scoutState.ok,
+    reinforceState.ok,
+    attackState.ok,
+    scoutState.message,
+    reinforceState.message,
+    attackState.message,
+    router,
+  ]);
 
   const kingdomById = useMemo(() => {
     return new Map(kingdoms.map((kingdom) => [kingdom.id, kingdom]));
@@ -581,6 +597,7 @@ export function MapaInteractivo({
                     </div>
                   ) : selectedIsOwned ? (
                     <form
+                      key={`reinforce-${selectedTerritory.id}-${selectedTerritory.soldiers ?? "hidden"}-${reinforceState.message}`}
                       action={reinforceAction}
                       className="border border-[#251014] bg-black/45 p-4"
                     >
@@ -642,7 +659,7 @@ export function MapaInteractivo({
                     </form>
                   ) : selectedIsEnemy ? (
                     <>
-                      <form action={scoutAction}>
+                      <form key={`scout-${selectedTerritory.id}-${scoutState.message}`} action={scoutAction}>
                         <input
                           type="hidden"
                           name="targetTerritoryId"
@@ -663,6 +680,7 @@ export function MapaInteractivo({
                       </form>
 
                       <form
+                        key={`attack-${selectedTerritory.id}-${attackState.message}`}
                         action={attackAction}
                         className="border border-[#251014] bg-black/45 p-4"
                       >
