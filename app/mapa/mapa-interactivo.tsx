@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
+import { ActionState, scoutTerritory } from "@/app/mi-reino/actions";
 
 type Kingdom = {
   id: string;
@@ -33,6 +34,11 @@ type MapaInteractivoProps = {
   kingdoms: Kingdom[];
   territories: Territory[];
   routes: Route[];
+  userEmail: string | null;
+  selectedKingdomId: string | null;
+  scoutUsed: boolean;
+  currentDay: number;
+  currentYear: number;
 };
 
 const SEA_NODE_NAMES = new Set([
@@ -44,6 +50,11 @@ const SEA_NODE_NAMES = new Set([
   "Mar Negro Oriental",
 ]);
 
+const initialActionState: ActionState = {
+  ok: false,
+  message: "",
+};
+
 function isSeaNode(name: string) {
   return SEA_NODE_NAMES.has(name);
 }
@@ -52,6 +63,11 @@ export function MapaInteractivo({
   kingdoms,
   territories,
   routes,
+  userEmail,
+  selectedKingdomId,
+  scoutUsed,
+  currentDay,
+  currentYear,
 }: MapaInteractivoProps) {
   const [showLandRoutes, setShowLandRoutes] = useState(true);
   const [showSeaRoutes, setShowSeaRoutes] = useState(true);
@@ -59,6 +75,15 @@ export function MapaInteractivo({
   const [showLandNodes, setShowLandNodes] = useState(true);
   const [showSeaNodes, setShowSeaNodes] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
+  const [showCommandBar, setShowCommandBar] = useState(true);
+  const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(
+    null,
+  );
+
+  const [scoutState, scoutAction, scoutPending] = useActionState(
+    scoutTerritory,
+    initialActionState,
+  );
 
   const kingdomById = useMemo(() => {
     return new Map(kingdoms.map((kingdom) => [kingdom.id, kingdom]));
@@ -73,6 +98,24 @@ export function MapaInteractivo({
       return route.from_territory_id < route.to_territory_id;
     });
   }, [routes]);
+
+  const selectedTerritory = selectedTerritoryId
+    ? territoryById.get(selectedTerritoryId) ?? null
+    : null;
+
+  const selectedTerritoryOwner = selectedTerritory?.owner_kingdom_id
+    ? kingdomById.get(selectedTerritory.owner_kingdom_id) ?? null
+    : null;
+
+  const selectedIsStation = selectedTerritory?.type === "STATION";
+
+  const canUseScout =
+    Boolean(userEmail) &&
+    Boolean(selectedKingdomId) &&
+    Boolean(selectedTerritory) &&
+    !selectedIsStation &&
+    !scoutUsed &&
+    !scoutPending;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-[#f3eee8]">
@@ -101,7 +144,7 @@ export function MapaInteractivo({
 
       <section className="relative h-screen w-screen pt-[73px]">
         <div className="relative h-full w-full overflow-auto bg-[#050203]">
-          <div className="relative mx-auto min-w-[1500px] max-w-[1900px]">
+          <div className="relative mx-auto min-w-[1500px] max-w-[1900px] pb-28">
             <img
               src="/maps/saga-eterna-map.png"
               alt="Mapa de Saga Eterna"
@@ -167,6 +210,7 @@ export function MapaInteractivo({
               const isCapital = territory.type === "CAPITAL";
               const isStation = territory.type === "STATION";
               const seaNode = isSeaNode(territory.name);
+              const isSelected = selectedTerritoryId === territory.id;
 
               if (isStation) {
                 if (seaNode && !showSeaNodes) {
@@ -178,13 +222,16 @@ export function MapaInteractivo({
                 }
 
                 return (
-                  <div
+                  <button
                     key={territory.id}
+                    type="button"
+                    onClick={() => setSelectedTerritoryId(territory.id)}
                     className="group absolute grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center"
                     style={{
                       left: `${territory.x}%`,
                       top: `${territory.y}%`,
                     }}
+                    title={territory.name}
                   >
                     <span
                       className={[
@@ -192,6 +239,7 @@ export function MapaInteractivo({
                         seaNode
                           ? "border-sky-100/70 bg-sky-700 text-sky-400"
                           : "border-[#f2d29b]/70 bg-[#9b7b47] text-[#d9aa5a]",
+                        isSelected ? "ring-2 ring-white" : "",
                       ].join(" ")}
                     />
 
@@ -206,7 +254,7 @@ export function MapaInteractivo({
                         Punto de viaje. No puede conquistarse.
                       </p>
                     </div>
-                  </div>
+                  </button>
                 );
               }
 
@@ -215,18 +263,22 @@ export function MapaInteractivo({
               }
 
               return (
-                <div
+                <button
                   key={territory.id}
+                  type="button"
+                  onClick={() => setSelectedTerritoryId(territory.id)}
                   className="group absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center"
                   style={{
                     left: `${territory.x}%`,
                     top: `${territory.y}%`,
                   }}
+                  title={territory.name}
                 >
                   <span
                     className={[
                       "block rounded-full border border-black/90 shadow-[0_0_16px_currentColor]",
                       isCapital ? "h-5 w-5 ring-2 ring-[#d83a3a]" : "h-4 w-4",
+                      isSelected ? "outline outline-2 outline-white" : "",
                     ].join(" ")}
                     style={{
                       backgroundColor: owner?.color ?? "#d7d7d7",
@@ -264,7 +316,7 @@ export function MapaInteractivo({
                       </span>
                     </p>
                   </div>
-                </div>
+                </button>
               );
             })}
 
@@ -274,6 +326,15 @@ export function MapaInteractivo({
               </p>
 
               <div className="mt-3 grid gap-2 text-[#d7c9bd]">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={showCommandBar}
+                    onChange={() => setShowCommandBar((value) => !value)}
+                  />
+                  Barra táctica
+                </label>
+
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
                     type="checkbox"
@@ -331,7 +392,7 @@ export function MapaInteractivo({
             </div>
 
             {showLegend && (
-              <div className="absolute bottom-5 right-5 z-20 border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
+              <div className="absolute bottom-32 right-5 z-20 border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
                 <p className="font-black uppercase tracking-[0.28em] text-[#d83a3a]">
                   Leyenda
                 </p>
@@ -359,6 +420,138 @@ export function MapaInteractivo({
                   <div className="flex items-center gap-3">
                     <span className="h-px w-8 border-t border-dashed border-sky-300" />
                     <span>Ruta marítima</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showCommandBar && (
+              <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#3a0c12] bg-black/90 shadow-[0_-20px_70px_rgba(0,0,0,0.65)] backdrop-blur">
+                <div className="mx-auto grid max-w-[1900px] gap-4 px-6 py-4 lg:grid-cols-[1fr_auto]">
+                  <div className="flex min-w-0 items-center gap-5">
+                    <div className="hidden h-14 w-1 bg-[#d83a3a] lg:block" />
+
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#d83a3a]">
+                        Barra táctica · Día {currentDay} del {currentYear} d.C.
+                      </p>
+
+                      {selectedTerritory ? (
+                        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
+                          <h2 className="text-2xl font-black uppercase text-[#fff8ef]">
+                            {selectedTerritory.name}
+                          </h2>
+
+                          <span className="text-xs font-black uppercase tracking-[0.22em] text-[#b6a9a1]">
+                            {selectedTerritory.type === "CAPITAL"
+                              ? "Capital"
+                              : selectedTerritory.type === "CITY"
+                                ? "Ciudad"
+                                : isSeaNode(selectedTerritory.name)
+                                  ? "Nodo marítimo"
+                                  : "Nodo terrestre"}
+                          </span>
+
+                          <span className="text-xs font-black uppercase tracking-[0.22em] text-[#b6a9a1]">
+                            Dueño:{" "}
+                            <span className="text-[#fff8ef]">
+                              {selectedTerritoryOwner?.name ?? "Sin dueño"}
+                            </span>
+                          </span>
+
+                          {!selectedIsStation && (
+                            <span className="text-xs font-black uppercase tracking-[0.22em] text-[#b6a9a1]">
+                              Soldados:{" "}
+                              <span className="text-[#fff8ef]">
+                                {selectedTerritory.soldiers.toLocaleString("es-ES")}
+                              </span>
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
+                          Selecciona una ciudad o nodo del mapa para ver sus
+                          acciones disponibles.
+                        </p>
+                      )}
+
+                      {scoutState.message && (
+                        <p
+                          className={[
+                            "mt-2 text-sm font-bold",
+                            scoutState.ok ? "text-[#bef264]" : "text-[#fca5a5]",
+                          ].join(" ")}
+                        >
+                          {scoutState.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-start gap-3 lg:justify-end">
+                    {!userEmail ? (
+                      <Link
+                        href="/login"
+                        className="border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                      >
+                        Entrar para actuar
+                      </Link>
+                    ) : !selectedKingdomId ? (
+                      <Link
+                        href="/mi-reino"
+                        className="border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                      >
+                        Elegir reino
+                      </Link>
+                    ) : (
+                      <>
+                        <form action={scoutAction}>
+                          <input
+                            type="hidden"
+                            name="targetTerritoryId"
+                            value={selectedTerritory?.id ?? ""}
+                          />
+
+                          <button
+                            type="submit"
+                            disabled={!canUseScout}
+                            className="border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            {scoutPending
+                              ? "Investigando..."
+                              : scoutUsed
+                                ? "Investigación usada"
+                                : "Investigar tropas"}
+                          </button>
+                        </form>
+
+                        <button
+                          type="button"
+                          disabled
+                          className="border border-[#251014] bg-black/50 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#7f7470] opacity-70"
+                        >
+                          Reforzar
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled
+                          className="border border-[#251014] bg-black/50 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#7f7470] opacity-70"
+                        >
+                          Atacar
+                        </button>
+                      </>
+                    )}
+
+                    {selectedTerritory && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTerritoryId(null)}
+                        className="border border-[#251014] bg-black/50 px-4 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#d7c9bd] transition hover:border-[#c3222b] hover:text-[#fff8ef]"
+                      >
+                        Limpiar
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
