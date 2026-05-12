@@ -44,6 +44,15 @@ type TerritoryDispute = {
   opened_day: number;
 };
 
+type ScoutReport = {
+  id: string;
+  territory_id: string;
+  game_day: number;
+  year: number;
+  observed_soldiers: number;
+  created_at: string | null;
+};
+
 export default async function MapaPage() {
   const supabase = await createClient();
 
@@ -55,6 +64,7 @@ export default async function MapaPage() {
   let scoutUsed = false;
   let currentDay = 1;
   let currentYear = 792;
+  let scoutReports: ScoutReport[] = [];
 
   const [
     { data: kingdoms },
@@ -102,6 +112,13 @@ export default async function MapaPage() {
       .maybeSingle();
 
     scoutUsed = Boolean(todayScoutAction);
+
+    const { data: scoutReportData } = await supabase
+      .from("scout_reports")
+      .select("id, territory_id, game_day, year, observed_soldiers, created_at")
+      .order("created_at", { ascending: false });
+
+    scoutReports = (scoutReportData ?? []) as ScoutReport[];
   }
 
   const rawTerritories = (territories ?? []) as Territory[];
@@ -128,6 +145,7 @@ export default async function MapaPage() {
       currentDay={currentDay}
       currentYear={currentYear}
       disputes={(disputes ?? []) as TerritoryDispute[]}
+      scoutReports={scoutReports}
     />
   );
 }

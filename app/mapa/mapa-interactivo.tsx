@@ -47,6 +47,15 @@ type TerritoryDispute = {
   opened_day: number;
 };
 
+type ScoutReport = {
+  id: string;
+  territory_id: string;
+  game_day: number;
+  year: number;
+  observed_soldiers: number;
+  created_at: string | null;
+};
+
 type MapaInteractivoProps = {
   kingdoms: Kingdom[];
   territories: Territory[];
@@ -57,6 +66,7 @@ type MapaInteractivoProps = {
   currentDay: number;
   currentYear: number;
   disputes: TerritoryDispute[];
+  scoutReports: ScoutReport[];
 };
 
 const SEA_NODE_NAMES = new Set([
@@ -87,6 +97,7 @@ export function MapaInteractivo({
   currentDay,
   currentYear,
   disputes,
+  scoutReports,
 }: MapaInteractivoProps) {
   const router = useRouter();
   const [showLandRoutes, setShowLandRoutes] = useState(true);
@@ -148,6 +159,12 @@ export function MapaInteractivo({
 
   const selectedTerritoryOwner = selectedTerritory?.owner_kingdom_id
     ? kingdomById.get(selectedTerritory.owner_kingdom_id) ?? null
+    : null;
+
+  const selectedScoutReport = selectedTerritory
+    ? scoutReports.find(
+        (report) => report.territory_id === selectedTerritory.id,
+      ) ?? null
     : null;
 
   const selectedIsStation = selectedTerritory?.type === "STATION";
@@ -608,7 +625,19 @@ export function MapaInteractivo({
                       </p>
                     )}
 
-                    {!selectedIsStation && !selectedIsOwned && (
+                    {!selectedIsStation && !selectedIsOwned && selectedScoutReport && (
+                      <p>
+                        Último informe:{" "}
+                        <span className="font-black text-[#fde68a]">
+                          {Number(selectedScoutReport.observed_soldiers ?? 0).toLocaleString("es-ES")} soldados
+                        </span>{" "}
+                        <span className="text-[#7f7470]">
+                          · Día {selectedScoutReport.game_day}
+                        </span>
+                      </p>
+                    )}
+
+                    {!selectedIsStation && !selectedIsOwned && !selectedScoutReport && (
                       <p>
                         Soldados:{" "}
                         <span className="font-black text-[#d83a3a]">
