@@ -286,215 +286,25 @@ export async function attackTerritory(
     };
   }
 
-  if (fromTerritoryId === targetTerritoryId) {
-    return {
-      ok: false,
-      message: "El origen y el objetivo no pueden ser el mismo territorio.",
-    };
-  }
-
   const supabase = await createClient();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return {
-      ok: false,
-      message: "Debes iniciar sesión para atacar territorios.",
-    };
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id, kingdom_id")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError || !profile?.kingdom_id) {
-    return {
-      ok: false,
-      message: "Debes elegir un reino antes de realizar acciones.",
-    };
-  }
-
-  const { data: gameState, error: gameStateError } = await supabase
-    .from("game_state")
-    .select("current_day, current_year")
-    .limit(1)
-    .single();
-
-  if (gameStateError || !gameState) {
-    return {
-      ok: false,
-      message: "No se pudo leer el estado actual del juego.",
-    };
-  }
-
-  const currentDay = Number(gameState.current_day);
-  const currentYear = Number(gameState.current_year);
-
-  const [{ data: fromTerritory }, { data: targetTerritory }] =
-    await Promise.all([
-      supabase
-        .from("territories")
-        .select("id, name, type, soldiers, owner_kingdom_id")
-        .eq("id", fromTerritoryId)
-        .single(),
-      supabase
-        .from("territories")
-        .select("id, name, type, soldiers, owner_kingdom_id")
-        .eq("id", targetTerritoryId)
-        .single(),
-    ]);
-
-  if (!fromTerritory || !targetTerritory) {
-    return {
-      ok: false,
-      message: "No se pudieron leer los territorios seleccionados.",
-    };
-  }
-
-  if (
-    fromTerritory.type === "STATION" ||
-    targetTerritory.type === "STATION"
-  ) {
-    return {
-      ok: false,
-      message: "No puedes atacar usando nodos de viaje.",
-    };
-  }
-
-  if (fromTerritory.owner_kingdom_id !== profile.kingdom_id) {
-    return {
-      ok: false,
-      message: "Solo puedes atacar desde territorios de tu propio reino.",
-    };
-  }
-
-  if (targetTerritory.owner_kingdom_id === profile.kingdom_id) {
-    return {
-      ok: false,
-      message: "No puedes atacar un territorio aliado.",
-    };
-  }
-
-  if (!targetTerritory.owner_kingdom_id) {
-    return {
-      ok: false,
-      message: "Este territorio no pertenece a ningún reino.",
-    };
-  }
-
-  const availableSoldiers = Number(fromTerritory.soldiers ?? 0);
-  const defenderSoldiers = Number(targetTerritory.soldiers ?? 0);
-
-  if (amount > availableSoldiers) {
-    return {
-      ok: false,
-      message: `No hay suficientes soldados en ${fromTerritory.name}. Disponibles: ${availableSoldiers.toLocaleString("es-ES")}.`,
-    };
-  }
-
-  const { data: directRoutes, error: directRouteError } = await supabase
-    .from("routes")
-    .select("id, travel_hours")
-    .or(
-      `and(from_territory_id.eq.${fromTerritoryId},to_territory_id.eq.${targetTerritoryId}),and(from_territory_id.eq.${targetTerritoryId},to_territory_id.eq.${fromTerritoryId})`,
-    )
-    .limit(1);
-
-  if (directRouteError) {
-    return {
-      ok: false,
-      message: directRouteError.message,
-    };
-  }
-
-  const directRoute = directRoutes?.[0] ?? null;
-
-  if (!directRoute) {
-    return {
-      ok: false,
-      message: "Por ahora solo puedes atacar territorios enemigos conectados directamente por una ruta.",
-    };
-  }
-
-  const newFromSoldiers = availableSoldiers - amount;
-  const attackersWin = amount > defenderSoldiers;
-  const remainingSoldiers = Math.abs(amount - defenderSoldiers);
-
-  const { error: updateFromError } = await supabase
-    .from("territories")
-    .update({
-      soldiers: newFromSoldiers,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", fromTerritory.id);
-
-  if (updateFromError) {
-    return {
-      ok: false,
-      message: updateFromError.message,
-    };
-  }
-
-  const { error: updateTargetError } = await supabase
-    .from("territories")
-    .update({
-      soldiers: remainingSoldiers,
-      owner_kingdom_id: attackersWin
-        ? profile.kingdom_id
-        : targetTerritory.owner_kingdom_id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", targetTerritory.id);
-
-  if (updateTargetError) {
-    return {
-      ok: false,
-      message: updateTargetError.message,
-    };
-  }
-
-  const { error: actionError } = await supabase.from("player_actions").insert({
-    user_id: user.id,
-    kingdom_id: profile.kingdom_id,
-    type: "ATTACK",
-    game_day: currentDay,
-    source_territory_id: fromTerritory.id,
-    target_territory_id: targetTerritory.id,
-    soldiers: amount,
+  const { data, error } = await supabase.rpc("attack_territory_atomic", {
+    p_from_territory_id: fromTerritoryId,
+    p_target_territory_id: targetTerritoryId,
+    p_amount: amount,
   });
 
-  if (actionError) {
+  if (error) {
     return {
       ok: false,
-      message: actionError.message,
+      message: error.message,
     };
   }
 
-  const message = attackersWin
-    ? `${fromTerritory.name} ha lanzado un ataque contra ${targetTerritory.name}. Tras la batalla, ${targetTerritory.name} ha sido conquistada.`
-    : `${fromTerritory.name} ha lanzado un ataque contra ${targetTerritory.name}. Los defensores han resistido.`;
-
-  const { error: logError } = await supabase.from("global_logs").insert({
-    game_day: currentDay,
-    year: currentYear,
-    message,
-    type: attackersWin ? "CONQUEST" : "ATTACK",
-    territory_id: targetTerritory.id,
-    actor_kingdom_id: profile.kingdom_id,
-  });
-
-  if (logError) {
-    return {
-      ok: false,
-      message: logError.message,
-    };
-  }
+  const result = data as {
+    ok?: boolean;
+    message?: string;
+  } | null;
 
   revalidatePath("/mi-reino");
   revalidatePath("/registro-global");
@@ -502,13 +312,10 @@ export async function attackTerritory(
   revalidatePath("/mapa");
 
   return {
-    ok: true,
-    message: attackersWin
-      ? `Victoria: ${targetTerritory.name} ha sido conquistada con ${remainingSoldiers.toLocaleString("es-ES")} soldados supervivientes.`
-      : `Ataque rechazado: ${targetTerritory.name} conserva ${remainingSoldiers.toLocaleString("es-ES")} soldados.`,
+    ok: Boolean(result?.ok),
+    message: result?.message ?? "No se pudo completar el ataque.",
   };
 }
-
 
 export async function signOut() {
   const supabase = await createClient();
