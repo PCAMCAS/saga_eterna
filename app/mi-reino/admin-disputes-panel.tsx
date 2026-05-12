@@ -23,8 +23,16 @@ type TerritoryDispute = {
   opened_day: number;
 };
 
+type TerritoryDisputeAttacker = {
+  id: string;
+  dispute_id: string;
+  kingdom_id: string;
+  soldiers: number;
+};
+
 type AdminDisputesPanelProps = {
   disputes: TerritoryDispute[];
+  attackers: TerritoryDisputeAttacker[];
   territories: Territory[];
   kingdoms: Kingdom[];
 };
@@ -34,8 +42,13 @@ const initialState: ActionState = {
   message: "",
 };
 
+function formatSoldiers(value: number) {
+  return value.toLocaleString("es-ES");
+}
+
 export function AdminDisputesPanel({
   disputes,
+  attackers,
   territories,
   kingdoms,
 }: AdminDisputesPanelProps) {
@@ -69,8 +82,11 @@ export function AdminDisputesPanel({
         ) : (
           disputes.map((dispute) => {
             const territory = territoryById.get(dispute.territory_id);
-            const attacker = kingdomById.get(dispute.attacker_kingdom_id);
             const defender = kingdomById.get(dispute.defender_kingdom_id);
+
+            const disputeAttackers = attackers
+              .filter((attacker) => attacker.dispute_id === dispute.id)
+              .sort((a, b) => Number(b.soldiers ?? 0) - Number(a.soldiers ?? 0));
 
             return (
               <form
@@ -88,28 +104,51 @@ export function AdminDisputesPanel({
                   {territory?.name ?? "Territorio desconocido"}
                 </h3>
 
-                <p className="mt-3 text-sm leading-6 text-[#b6a9a1]">
-                  Atacante:{" "}
-                  <span className="font-black text-[#fff8ef]">
-                    {attacker?.name ?? "Desconocido"}
-                  </span>
-                </p>
+                <div className="mt-4 border border-[#854d0e] bg-black/45 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#fde68a]">
+                    Defensor
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
+                    <span className="font-black text-[#fff8ef]">
+                      {defender?.name ?? "Desconocido"}
+                    </span>
+                    {" · "}
+                    {formatSoldiers(
+                      Number(dispute.defender_soldiers_at_open ?? 0),
+                    )}{" "}
+                    soldados al abrirse
+                  </p>
+                </div>
 
-                <p className="text-sm leading-6 text-[#b6a9a1]">
-                  Defensor:{" "}
-                  <span className="font-black text-[#fff8ef]">
-                    {defender?.name ?? "Desconocido"}
-                  </span>
-                </p>
+                <div className="mt-4 space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#fca5a5]">
+                    Atacantes
+                  </p>
 
-                <p className="text-sm leading-6 text-[#b6a9a1]">
-                  Fuerza de asedio:{" "}
-                  <span className="font-black text-[#fff8ef]">
-                    {Number(dispute.attacker_soldiers ?? 0).toLocaleString(
-                      "es-ES",
-                    )}
-                  </span>
-                </p>
+                  {disputeAttackers.length === 0 ? (
+                    <p className="text-sm leading-6 text-[#b6a9a1]">
+                      No hay atacantes registrados.
+                    </p>
+                  ) : (
+                    disputeAttackers.map((attacker) => {
+                      const kingdom = kingdomById.get(attacker.kingdom_id);
+
+                      return (
+                        <div
+                          key={attacker.id}
+                          className="flex items-center justify-between gap-3 border border-[#251014] bg-black/45 px-3 py-2 text-sm"
+                        >
+                          <span className="font-black text-[#fff8ef]">
+                            {kingdom?.name ?? "Reino desconocido"}
+                          </span>
+                          <span className="text-[#fca5a5]">
+                            {formatSoldiers(Number(attacker.soldiers ?? 0))}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
 
                 <select
                   name="winnerKingdomId"
@@ -121,12 +160,21 @@ export function AdminDisputesPanel({
                   <option value="" disabled>
                     Elegir ganador
                   </option>
-                  <option value={dispute.attacker_kingdom_id}>
-                    {attacker?.name ?? "Atacante"}
-                  </option>
+
                   <option value={dispute.defender_kingdom_id}>
-                    {defender?.name ?? "Defensor"}
+                    Defensor · {defender?.name ?? "Desconocido"}
                   </option>
+
+                  {disputeAttackers.map((attacker) => {
+                    const kingdom = kingdomById.get(attacker.kingdom_id);
+
+                    return (
+                      <option key={attacker.id} value={attacker.kingdom_id}>
+                        Atacante · {kingdom?.name ?? "Desconocido"} ·{" "}
+                        {formatSoldiers(Number(attacker.soldiers ?? 0))} soldados
+                      </option>
+                    );
+                  })}
                 </select>
 
                 <button

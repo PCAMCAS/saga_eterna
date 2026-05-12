@@ -18,8 +18,16 @@ type TerritoryDispute = {
   opened_day: number;
 };
 
+type TerritoryDisputeAttacker = {
+  id: string;
+  dispute_id: string;
+  kingdom_id: string;
+  soldiers: number;
+};
+
 type PlayerDisputesPanelProps = {
   disputes: TerritoryDispute[];
+  attackers: TerritoryDisputeAttacker[];
   territories: Territory[];
   kingdoms: Kingdom[];
   selectedKingdomId: string;
@@ -31,6 +39,7 @@ function formatSoldiers(value: number) {
 
 export function PlayerDisputesPanel({
   disputes,
+  attackers,
   territories,
   kingdoms,
   selectedKingdomId,
@@ -41,13 +50,74 @@ export function PlayerDisputesPanel({
 
   const kingdomById = new Map(kingdoms.map((kingdom) => [kingdom.id, kingdom]));
 
-  const ownSieges = disputes.filter(
-    (dispute) => dispute.attacker_kingdom_id === selectedKingdomId,
+  const participatesInDispute = (dispute: TerritoryDispute) => {
+    return (
+      dispute.defender_kingdom_id === selectedKingdomId ||
+      attackers.some(
+        (attacker) =>
+          attacker.dispute_id === dispute.id &&
+          attacker.kingdom_id === selectedKingdomId,
+      )
+    );
+  };
+
+  const visibleDisputes = disputes.filter(participatesInDispute);
+
+  const ownSieges = visibleDisputes.filter((dispute) =>
+    attackers.some(
+      (attacker) =>
+        attacker.dispute_id === dispute.id &&
+        attacker.kingdom_id === selectedKingdomId,
+    ),
   );
 
-  const ownDefenses = disputes.filter(
+  const ownDefenses = visibleDisputes.filter(
     (dispute) => dispute.defender_kingdom_id === selectedKingdomId,
   );
+
+  const renderAttackers = (dispute: TerritoryDispute) => {
+    const disputeAttackers = attackers
+      .filter((attacker) => attacker.dispute_id === dispute.id)
+      .sort((a, b) => Number(b.soldiers ?? 0) - Number(a.soldiers ?? 0));
+
+    if (disputeAttackers.length === 0) {
+      return (
+        <p className="mt-3 text-sm leading-6 text-[#b6a9a1]">
+          No hay fuerzas atacantes registradas.
+        </p>
+      );
+    }
+
+    return (
+      <div className="mt-4 space-y-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
+          Fuerzas atacantes
+        </p>
+
+        {disputeAttackers.map((attacker) => {
+          const kingdom = kingdomById.get(attacker.kingdom_id);
+          const isOwnForce = attacker.kingdom_id === selectedKingdomId;
+
+          return (
+            <div
+              key={attacker.id}
+              className={[
+                "flex items-center justify-between gap-3 border bg-black/45 px-3 py-2 text-sm",
+                isOwnForce ? "border-[#854d0e]" : "border-[#251014]",
+              ].join(" ")}
+            >
+              <span className="font-black text-[#fff8ef]">
+                {kingdom?.name ?? "Reino desconocido"}
+              </span>
+              <span className={isOwnForce ? "text-[#fde68a]" : "text-[#b6a9a1]"}>
+                {formatSoldiers(Number(attacker.soldiers ?? 0))}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <section className="border border-[#7f1d1d] bg-black/45">
@@ -79,6 +149,11 @@ export function PlayerDisputesPanel({
               ownSieges.map((dispute) => {
                 const territory = territoryById.get(dispute.territory_id);
                 const defender = kingdomById.get(dispute.defender_kingdom_id);
+                const ownForce = attackers.find(
+                  (attacker) =>
+                    attacker.dispute_id === dispute.id &&
+                    attacker.kingdom_id === selectedKingdomId,
+                );
 
                 return (
                   <article
@@ -101,15 +176,17 @@ export function PlayerDisputesPanel({
                     </p>
 
                     <p className="text-sm leading-6 text-[#b6a9a1]">
-                      Fuerza de asedio registrada:{" "}
-                      <span className="font-black text-[#fff8ef]">
-                        {formatSoldiers(Number(dispute.attacker_soldiers ?? 0))}
+                      Tu fuerza de asedio:{" "}
+                      <span className="font-black text-[#fde68a]">
+                        {formatSoldiers(Number(ownForce?.soldiers ?? 0))}
                       </span>
                     </p>
 
+                    {renderAttackers(dispute)}
+
                     <div className="mt-4 border border-[#251014] bg-black/45 p-3 text-sm leading-6 text-[#fca5a5]">
                       Pendiente de batalla presencial. Puedes seguir enviando
-                      refuerzos hacia la zona mientras siga abierta.
+                      refuerzos hacia el asedio mientras siga abierto.
                     </div>
                   </article>
                 );
@@ -131,7 +208,6 @@ export function PlayerDisputesPanel({
             ) : (
               ownDefenses.map((dispute) => {
                 const territory = territoryById.get(dispute.territory_id);
-                const attacker = kingdomById.get(dispute.attacker_kingdom_id);
 
                 return (
                   <article
@@ -147,18 +223,15 @@ export function PlayerDisputesPanel({
                     </h4>
 
                     <p className="mt-3 text-sm leading-6 text-[#b6a9a1]">
-                      Atacante:{" "}
+                      Defensores al abrirse la disputa:{" "}
                       <span className="font-black text-[#fff8ef]">
-                        {attacker?.name ?? "Desconocido"}
+                        {formatSoldiers(
+                          Number(dispute.defender_soldiers_at_open ?? 0),
+                        )}
                       </span>
                     </p>
 
-                    <p className="text-sm leading-6 text-[#b6a9a1]">
-                      Fuerza enemiga registrada:{" "}
-                      <span className="font-black text-[#fff8ef]">
-                        {formatSoldiers(Number(dispute.attacker_soldiers ?? 0))}
-                      </span>
-                    </p>
+                    {renderAttackers(dispute)}
 
                     <div className="mt-4 border border-[#251014] bg-black/45 p-3 text-sm leading-6 text-[#fde68a]">
                       El territorio sigue bajo tu bandera, pero está asediado.

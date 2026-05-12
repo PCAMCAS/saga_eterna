@@ -83,6 +83,13 @@ type TerritoryDispute = {
   opened_day: number;
 };
 
+type TerritoryDisputeAttacker = {
+  id: string;
+  dispute_id: string;
+  kingdom_id: string;
+  soldiers: number;
+};
+
 function formatSoldiers(value: number) {
   return value.toLocaleString("es-ES");
 }
@@ -118,6 +125,7 @@ export default async function MiReinoPage() {
   let publicLogs: GlobalLog[] = [];
   let troopMovements: TroopMovement[] = [];
   let territoryDisputes: TerritoryDispute[] = [];
+  let territoryDisputeAttackers: TerritoryDisputeAttacker[] = [];
 
   let adjacentTerritories: {
     origin: Territory;
@@ -175,6 +183,7 @@ export default async function MiReinoPage() {
       { data: logData },
       { data: movementData },
       { data: disputeData },
+      { data: disputeAttackerData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
       supabase.from("territories").select("*").order("name"),
@@ -213,6 +222,10 @@ export default async function MiReinoPage() {
         )
         .eq("status", "OPEN")
         .order("opened_day", { ascending: true }),
+      supabase
+        .from("territory_dispute_attackers")
+        .select("id, dispute_id, kingdom_id, soldiers")
+        .order("created_at", { ascending: true }),
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
@@ -222,6 +235,7 @@ export default async function MiReinoPage() {
     publicLogs = (logData ?? []) as GlobalLog[];
     troopMovements = (movementData ?? []) as TroopMovement[];
     territoryDisputes = (disputeData ?? []) as TerritoryDispute[];
+    territoryDisputeAttackers = (disputeAttackerData ?? []) as TerritoryDisputeAttacker[];
 
     if (gameStateData) {
       currentDay = Number(gameStateData.current_day);
@@ -754,8 +768,14 @@ export default async function MiReinoPage() {
                     disputes={territoryDisputes.filter(
                       (dispute) =>
                         dispute.attacker_kingdom_id === selectedKingdom.id ||
-                        dispute.defender_kingdom_id === selectedKingdom.id,
+                        dispute.defender_kingdom_id === selectedKingdom.id ||
+                        territoryDisputeAttackers.some(
+                          (attacker) =>
+                            attacker.dispute_id === dispute.id &&
+                            attacker.kingdom_id === selectedKingdom.id,
+                        ),
                     )}
+                    attackers={territoryDisputeAttackers}
                     territories={allTerritories}
                     kingdoms={kingdoms}
                     selectedKingdomId={selectedKingdom.id}
@@ -1147,6 +1167,7 @@ export default async function MiReinoPage() {
 
                       <AdminDisputesPanel
                         disputes={territoryDisputes}
+                        attackers={territoryDisputeAttackers}
                         territories={allTerritories}
                         kingdoms={kingdoms}
                       />
