@@ -2,6 +2,7 @@
 -- Estado inicial para producción:
 -- Año 725 d.C.
 -- Día real del año actual
+-- Territorios devueltos a su dueño original
 -- Capitales con 10 soldados
 -- Ciudades y nodos con 0 soldados
 -- Sin movimientos, disputas, informes ni registros de prueba
@@ -39,6 +40,24 @@ $$;
 alter table public.game_state
 add column if not exists current_tick integer not null default 1;
 
+alter table public.territories
+add column if not exists original_owner_kingdom_id uuid references public.kingdoms(id) on delete set null;
+
+-- Guardar dueño original solo si aún no está fijado.
+-- Importante: ejecuta esto cuando los territorios estén en su reparto inicial correcto.
+update public.territories
+set original_owner_kingdom_id = owner_kingdom_id
+where original_owner_kingdom_id is null
+  and type <> 'STATION';
+
+-- Correcciones explícitas de dueño original.
+-- Necesarias si durante pruebas algún territorio fue conquistado antes de fijar original_owner_kingdom_id.
+update public.territories
+set original_owner_kingdom_id = (
+  select id from public.kingdoms where name = 'Sultanato de Saladino'
+)
+where name in ('Damasco', 'Hama');
+
 -- Limpiar datos dinámicos de campaña.
 delete from public.troop_movements;
 delete from public.territory_dispute_attackers;
@@ -47,15 +66,26 @@ delete from public.scout_reports;
 delete from public.player_actions;
 delete from public.global_logs;
 
--- Resetear territorios.
+-- Devolver territorios conquistables a su dueño original.
 update public.territories
 set
+  owner_kingdom_id = original_owner_kingdom_id,
   soldiers = case
     when type = 'CAPITAL' then 10
     else 0
   end,
   is_disputed = false,
-  updated_at = now();
+  updated_at = now()
+where type <> 'STATION';
+
+-- Resetear nodos de viaje.
+update public.territories
+set
+  owner_kingdom_id = null,
+  soldiers = 0,
+  is_disputed = false,
+  updated_at = now()
+where type = 'STATION';
 
 -- Resetear calendario.
 update public.game_state
@@ -74,7 +104,7 @@ insert into public.global_logs (
 values (
   public.real_day_of_year(),
   725,
-  'El mundo despierta en el año 725 d.C. Las capitales conservan una pequeña guarnición inicial.',
+  'El mundo despierta en el año 725 d.C. Cada reino conserva sus dominios originales y las capitales mantienen una pequeña guarnición inicial.',
   'SYSTEM'
 );
 
@@ -87,9 +117,20 @@ from public.game_state
 limit 1;
 
 select
-  type,
+  t.type,
   count(*) as territories,
-  sum(soldiers) as total_soldiers
-from public.territories
-group by type
-order by type;
+  sum(t.soldiers) as total_soldiers
+from public.territories t
+group by t.type
+order by t.type;
+
+select
+  t.name,
+  t.type,
+  k.name as owner,
+  ok.name as original_owner,
+  t.soldiers
+from public.territories t
+left join public.kingdoms k on k.id = t.owner_kingdom_id
+left join public.kingdoms ok on ok.id = t.original_owner_kingdom_id
+order by t.type, t.name;
