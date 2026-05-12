@@ -323,3 +323,58 @@ export async function signOut() {
 
   redirect("/login");
 }
+
+export async function advanceGameDay(
+  _previousState: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user?.email) {
+    return {
+      ok: false,
+      message: "Debes iniciar sesión para avanzar el día.",
+    };
+  }
+
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!adminEmails.includes(user.email.toLowerCase())) {
+    return {
+      ok: false,
+      message: "No tienes permiso para avanzar el día.",
+    };
+  }
+
+  const { data, error } = await supabase.rpc("advance_game_day");
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+
+  const result = data as {
+    ok?: boolean;
+    message?: string;
+  } | null;
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/mundo");
+  revalidatePath("/mapa");
+  revalidatePath("/registro-global");
+
+  return {
+    ok: Boolean(result?.ok),
+    message: result?.message ?? "No se pudo avanzar el día.",
+  };
+}
