@@ -339,6 +339,15 @@ export default async function MiReinoPage() {
     (kingdom) => kingdom.id === profile?.kingdom_id,
   );
 
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  const isAdmin = Boolean(
+    user?.email && adminEmails.includes(user.email.toLowerCase()),
+  );
+
   const territoryById = new Map(
     allTerritories.map((territory) => [territory.id, territory]),
   );
@@ -1049,10 +1058,12 @@ export default async function MiReinoPage() {
                     currentYear={currentYear}
                   />
 
-                  <AdvanceDayPanel
-                    currentDay={currentDay}
-                    currentYear={currentYear}
-                  />
+                  {isAdmin && (
+                    <AdvanceDayPanel
+                      currentDay={currentDay}
+                      currentYear={currentYear}
+                    />
+                  )}
                 </aside>
               </div>
             ) : (
