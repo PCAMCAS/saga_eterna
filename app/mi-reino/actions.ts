@@ -147,7 +147,7 @@ export async function scoutTerritory(
 
   const { data: targetTerritory, error: targetError } = await supabase
     .from("territories")
-    .select("id, name, type, soldiers")
+    .select("id, name, type, soldiers, owner_kingdom_id")
     .eq("id", targetTerritoryId)
     .single();
 
