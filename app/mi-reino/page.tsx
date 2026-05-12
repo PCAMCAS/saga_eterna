@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { selectKingdom, signOut } from "./actions";
+import { DailyActionsPanel } from "./daily-actions-panel";
 
 type Kingdom = {
   id: string;
@@ -51,6 +52,16 @@ export default async function MiReinoPage() {
     owner: Kingdom | null;
   }[] = [];
 
+  let scoutTargets: {
+    id: string;
+    name: string;
+    ownerName: string;
+  }[] = [];
+
+  let scoutUsed = false;
+  let currentDay = 1;
+  let currentYear = 792;
+
   if (user) {
     const { data: existingProfile } = await supabase
       .from("profiles")
@@ -77,16 +88,56 @@ export default async function MiReinoPage() {
       { data: kingdomData },
       { data: territoryData },
       { data: routeData },
+      { data: gameStateData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
       supabase.from("territories").select("*").order("name"),
       supabase.from("routes").select("*"),
+      supabase
+        .from("game_state")
+        .select("current_day, current_year")
+        .limit(1)
+        .single(),
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
 
     const allTerritories = (territoryData ?? []) as Territory[];
     const allRoutes = (routeData ?? []) as Route[];
+
+    if (gameStateData) {
+      currentDay = Number(gameStateData.current_day);
+      currentYear = Number(gameStateData.current_year);
+    }
+
+    const kingdomByIdForActions = new Map(
+      kingdoms.map((kingdom) => [kingdom.id, kingdom]),
+    );
+
+    scoutTargets = allTerritories
+      .filter((territory) => territory.type !== "STATION")
+      .map((territory) => {
+        const owner = territory.owner_kingdom_id
+          ? kingdomByIdForActions.get(territory.owner_kingdom_id)
+          : null;
+
+        return {
+          id: territory.id,
+          name: territory.name,
+          ownerName: owner?.name ?? "Sin dueño",
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const { data: todayScoutAction } = await supabase
+      .from("player_actions")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("type", "SCOUT")
+      .eq("game_day", currentDay)
+      .maybeSingle();
+
+    scoutUsed = Boolean(todayScoutAction);
 
     if (profile?.kingdom_id) {
       ownedTerritories = allTerritories
@@ -383,46 +434,12 @@ export default async function MiReinoPage() {
                     </form>
                   </div>
 
-                  <div className="border border-[#251014] bg-black/45">
-                    <div className="border-b border-[#251014] p-6">
-                      <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
-                        Acciones diarias
-                      </p>
-                      <h2 className="mt-3 text-2xl font-black uppercase text-[#fff8ef]">
-                        Próximamente
-                      </h2>
-                    </div>
-
-                    <div className="space-y-4 p-6">
-                      <article className="border border-[#251014] bg-black/45 p-4">
-                        <h3 className="font-black text-[#fff8ef]">
-                          Reforzar territorio
-                        </h3>
-                        <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
-                          Mover soldados entre territorios aliados respetando
-                          24 horas por tramo.
-                        </p>
-                      </article>
-
-                      <article className="border border-[#251014] bg-black/45 p-4">
-                        <h3 className="font-black text-[#fff8ef]">
-                          Mover tropas al enemigo
-                        </h3>
-                        <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
-                          Enviar soldados hacia territorios enemigos conectados.
-                        </p>
-                      </article>
-
-                      <article className="border border-[#251014] bg-black/45 p-4">
-                        <h3 className="font-black text-[#fff8ef]">
-                          Investigar tropas
-                        </h3>
-                        <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
-                          Revelar tropas de un territorio al registro global.
-                        </p>
-                      </article>
-                    </div>
-                  </div>
+                  <DailyActionsPanel
+                    territories={scoutTargets}
+                    scoutUsed={scoutUsed}
+                    currentDay={currentDay}
+                    currentYear={currentYear}
+                  />
                 </aside>
               </div>
             ) : (
