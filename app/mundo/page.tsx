@@ -86,6 +86,9 @@ export default async function MundoPage() {
             <Link href="/facciones" className="transition hover:text-[#e12b2b]">
               Facciones
             </Link>
+            <Link href="/reglas" className="transition hover:text-[#e12b2b]">
+              Reglas
+            </Link>
             <Link href="/mi-reino" className="transition hover:text-[#e12b2b]">
               Mi Reino
             </Link>

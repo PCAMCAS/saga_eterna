@@ -578,6 +578,9 @@ export default async function MiReinoPage({
             <Link href="/facciones" className="transition hover:text-[#e12b2b]">
               Facciones
             </Link>
+            <Link href="/reglas" className="transition hover:text-[#e12b2b]">
+              Reglas
+            </Link>
             <Link href="/mi-reino" className="text-[#e12b2b]">
               Mi Reino
             </Link>

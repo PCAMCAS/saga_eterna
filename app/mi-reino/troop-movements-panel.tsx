@@ -13,6 +13,8 @@ type TroopMovement = {
   route_hours: number;
   departure_day: number;
   arrival_day: number;
+  departure_year: number;
+  arrival_year: number;
   is_automatic: boolean;
 };
 

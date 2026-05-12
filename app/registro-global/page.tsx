@@ -57,6 +57,9 @@ export default async function RegistroGlobalPage() {
             <Link href="/registro-global" className="text-[#e12b2b]">
               Registro
             </Link>
+            <Link href="/reglas" className="transition hover:text-[#e12b2b]">
+              Reglas
+            </Link>
             <Link href="/facciones" className="transition hover:text-[#e12b2b]">
               Facciones
             </Link>

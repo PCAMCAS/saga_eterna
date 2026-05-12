@@ -38,6 +38,9 @@ export default async function FaccionesPage() {
             <Link href="/registro-global" className="transition hover:text-[#e12b2b]">
               Registro
             </Link>
+            <Link href="/reglas" className="transition hover:text-[#e12b2b]">
+              Reglas
+            </Link>
             <Link href="/facciones" className="text-[#e12b2b]">
               Facciones
             </Link>

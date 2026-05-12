@@ -63,7 +63,7 @@ export default async function MapaPage() {
   let profile: Profile | null = null;
   let scoutUsed = false;
   let currentDay = 1;
-  let currentYear = 792;
+  let currentYear = 725;
   let scoutReports: ScoutReport[] = [];
 
   const [
