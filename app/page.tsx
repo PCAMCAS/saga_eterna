@@ -22,6 +22,9 @@ export default function Home() {
             <a href="/facciones" className="transition hover:text-[#e12b2b]">
               Facciones
             </a>
+            <a href="/mi-reino" className="transition hover:text-[#e12b2b]">
+              Mi Reino
+            </a>
           </nav>
         </div>
       </header>
