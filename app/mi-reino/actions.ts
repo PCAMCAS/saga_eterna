@@ -13,60 +13,58 @@ export async function selectKingdom(formData: FormData) {
   const kingdomId = String(formData.get("kingdomId") ?? "");
 
   if (!kingdomId) {
-    throw new Error("No se ha seleccionado ningún reino.");
+    redirect("/mi-reino");
   }
 
   const supabase = await createClient();
 
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    throw new Error("Debes iniciar sesión para elegir reino.");
+  if (!user) {
+    redirect("/login");
   }
 
-  const { data: existingProfile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("id, kingdom_id")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profileError) {
-    throw new Error(profileError.message);
+  if (profile?.kingdom_id) {
+    redirect("/mi-reino");
   }
 
-  if (existingProfile?.kingdom_id) {
-    throw new Error("Ya has elegido un reino. No puedes cambiarlo.");
+  const { data: occupiedProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("kingdom_id", kingdomId)
+    .neq("id", user.id)
+    .maybeSingle();
+
+  if (occupiedProfile) {
+    redirect("/mi-reino?error=reino-ocupado");
   }
 
-  if (!existingProfile) {
-    const { error: insertError } = await supabase.from("profiles").insert({
-      id: user.id,
-      username: user.email,
+  const { error } = await supabase
+    .from("profiles")
+    .update({
       kingdom_id: kingdomId,
-    });
+    })
+    .eq("id", user.id)
+    .is("kingdom_id", null);
 
-    if (insertError) {
-      throw new Error(insertError.message);
-    }
-  } else {
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({
-        kingdom_id: kingdomId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id)
-      .is("kingdom_id", null);
-
-    if (updateError) {
-      throw new Error(updateError.message);
-    }
+  if (error) {
+    redirect("/mi-reino?error=reino-ocupado");
   }
 
   revalidatePath("/mi-reino");
+  revalidatePath("/facciones");
+  revalidatePath("/mundo");
+  revalidatePath("/mapa");
+
+  redirect("/mi-reino");
 }
 
 export async function scoutTerritory(

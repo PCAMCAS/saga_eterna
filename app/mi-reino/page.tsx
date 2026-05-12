@@ -71,6 +71,8 @@ type TroopMovement = {
   route_hours: number;
   departure_day: number;
   arrival_day: number;
+  departure_year: number;
+  arrival_year: number;
   is_automatic: boolean;
 };
 
@@ -120,7 +122,13 @@ function actionBadge(type: string) {
   return "border-[#3a0c12] text-[#d7c9bd]";
 }
 
-export default async function MiReinoPage() {
+export default async function MiReinoPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const pageError = resolvedSearchParams?.error ?? null;
   const supabase = await createClient();
 
   const {
@@ -138,6 +146,7 @@ export default async function MiReinoPage() {
   let territoryDisputes: TerritoryDispute[] = [];
   let territoryDisputeAttackers: TerritoryDisputeAttacker[] = [];
   let scoutReports: ScoutReport[] = [];
+  let occupiedKingdomIds = new Set<string>();
 
   let adjacentTerritories: {
     origin: Territory;
@@ -162,7 +171,7 @@ export default async function MiReinoPage() {
 
   let scoutUsed = false;
   let currentDay = 1;
-  let currentYear = 792;
+  let currentYear = 725;
 
   if (user) {
     const { data: existingProfile } = await supabase
@@ -188,6 +197,7 @@ export default async function MiReinoPage() {
 
     const [
       { data: kingdomData },
+      { data: occupiedProfilesData },
       { data: territoryData },
       { data: routeData },
       { data: gameStateData },
@@ -199,6 +209,7 @@ export default async function MiReinoPage() {
       { data: scoutReportData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
+      supabase.from("profiles").select("kingdom_id").not("kingdom_id", "is", null),
       supabase.from("territories").select("*").order("name"),
       supabase.from("routes").select("*"),
       supabase
@@ -223,7 +234,7 @@ export default async function MiReinoPage() {
       supabase
         .from("troop_movements")
         .select(
-          "id, movement_type, status, source_territory_id, target_territory_id, soldiers, route_hours, departure_day, arrival_day, is_automatic",
+          "id, movement_type, status, source_territory_id, target_territory_id, soldiers, route_hours, departure_day, arrival_day, departure_year, arrival_year, is_automatic",
         )
         .eq("status", "IN_TRANSIT")
         .eq("kingdom_id", profile?.kingdom_id ?? "00000000-0000-0000-0000-000000000000")
@@ -249,6 +260,11 @@ export default async function MiReinoPage() {
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
+    occupiedKingdomIds = new Set(
+      (occupiedProfilesData ?? [])
+        .map((profile) => profile.kingdom_id as string | null)
+        .filter(Boolean) as string[],
+    );
     allTerritories = (territoryData ?? []) as Territory[];
     allRoutes = (routeData ?? []) as Route[];
     playerActions = (actionData ?? []) as PlayerAction[];
@@ -1204,6 +1220,12 @@ export default async function MiReinoPage() {
               </div>
             ) : (
               <div>
+                {pageError === "reino-ocupado" && (
+                  <div className="mb-6 border border-[#7f1d1d] bg-black/45 p-5 text-sm leading-6 text-[#fca5a5]">
+                    Ese reino ya ha sido reclamado por otro jugador. Escoge una facción libre.
+                  </div>
+                )}
+
                 <div className="border border-[#251014] bg-black/45 p-6">
                   <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
                     Sesión activa
@@ -1220,11 +1242,19 @@ export default async function MiReinoPage() {
                 </div>
 
                 <div className="mt-8 grid gap-5 md:grid-cols-2">
-                  {kingdoms.map((kingdom) => (
+                  {kingdoms.map((kingdom) => {
+                    const isOccupied = occupiedKingdomIds.has(kingdom.id);
+
+                    return (
                     <form
                       key={kingdom.id}
                       action={selectKingdom}
-                      className="border border-[#251014] bg-black/45 p-6 transition hover:border-[#c3222b]"
+                      className={[
+                        "border bg-black/45 p-6 transition",
+                        isOccupied
+                          ? "border-[#3a0c12] opacity-55"
+                          : "border-[#251014] hover:border-[#c3222b]",
+                      ].join(" ")}
                     >
                       <input
                         type="hidden"
@@ -1254,14 +1284,22 @@ export default async function MiReinoPage() {
                         {kingdom.description ?? "Sin descripción."}
                       </p>
 
+                      {isOccupied && (
+                        <p className="mt-5 border border-[#3a0c12] bg-black/45 px-4 py-3 text-xs font-black uppercase tracking-[0.22em] text-[#b6a9a1]">
+                          Reino ocupado
+                        </p>
+                      )}
+
                       <button
                         type="submit"
-                        className="mt-6 w-full border border-[#c3222b] bg-black/70 px-5 py-4 text-sm font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                        disabled={isOccupied}
+                        className="mt-6 w-full border border-[#c3222b] bg-black/70 px-5 py-4 text-sm font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:border-[#3a0c12] disabled:text-[#7f7470] disabled:hover:bg-black/70"
                       >
-                        Jurar lealtad
+                        {isOccupied ? "No disponible" : "Jurar lealtad"}
                       </button>
                     </form>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
