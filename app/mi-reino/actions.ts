@@ -185,10 +185,27 @@ export async function scoutTerritory(
   const soldiers = Number(targetTerritory.soldiers ?? 0);
   const formattedSoldiers = soldiers.toLocaleString("es-ES");
 
+  const { error: reportError } = await supabase.from("scout_reports").insert({
+    user_id: user.id,
+    kingdom_id: profile.kingdom_id,
+    territory_id: targetTerritory.id,
+    game_day: currentDay,
+    year: currentYear,
+    observed_soldiers: soldiers,
+    territory_owner_kingdom_id: targetTerritory.owner_kingdom_id,
+  });
+
+  if (reportError) {
+    return {
+      ok: false,
+      message: reportError.message,
+    };
+  }
+
   const { error: logError } = await supabase.from("global_logs").insert({
     game_day: currentDay,
     year: currentYear,
-    message: `Los exploradores han hallado ${formattedSoldiers} soldados en ${targetTerritory.name}.`,
+    message: `Exploradores han sido enviados a ${targetTerritory.name}.`,
     type: "SCOUT",
     territory_id: targetTerritory.id,
     actor_kingdom_id: profile.kingdom_id,

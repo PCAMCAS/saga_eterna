@@ -6,6 +6,7 @@ import { TroopMovementsPanel } from "./troop-movements-panel";
 import { AdvanceDayPanel } from "./advance-day-panel";
 import { AdminDisputesPanel } from "./admin-disputes-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
+import { ScoutReportsPanel } from "./scout-reports-panel";
 
 type Kingdom = {
   id: string;
@@ -90,6 +91,16 @@ type TerritoryDisputeAttacker = {
   soldiers: number;
 };
 
+type ScoutReport = {
+  id: string;
+  territory_id: string;
+  territory_owner_kingdom_id: string | null;
+  game_day: number;
+  year: number;
+  observed_soldiers: number;
+  created_at: string | null;
+};
+
 function formatSoldiers(value: number) {
   return value.toLocaleString("es-ES");
 }
@@ -126,6 +137,7 @@ export default async function MiReinoPage() {
   let troopMovements: TroopMovement[] = [];
   let territoryDisputes: TerritoryDispute[] = [];
   let territoryDisputeAttackers: TerritoryDisputeAttacker[] = [];
+  let scoutReports: ScoutReport[] = [];
 
   let adjacentTerritories: {
     origin: Territory;
@@ -184,6 +196,7 @@ export default async function MiReinoPage() {
       { data: movementData },
       { data: disputeData },
       { data: disputeAttackerData },
+      { data: scoutReportData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
       supabase.from("territories").select("*").order("name"),
@@ -226,6 +239,13 @@ export default async function MiReinoPage() {
         .from("territory_dispute_attackers")
         .select("id, dispute_id, kingdom_id, soldiers")
         .order("created_at", { ascending: true }),
+      supabase
+        .from("scout_reports")
+        .select(
+          "id, territory_id, territory_owner_kingdom_id, game_day, year, observed_soldiers, created_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
@@ -236,6 +256,7 @@ export default async function MiReinoPage() {
     troopMovements = (movementData ?? []) as TroopMovement[];
     territoryDisputes = (disputeData ?? []) as TerritoryDispute[];
     territoryDisputeAttackers = (disputeAttackerData ?? []) as TerritoryDisputeAttacker[];
+    scoutReports = (scoutReportData ?? []) as ScoutReport[];
 
     if (gameStateData) {
       currentDay = Number(gameStateData.current_day);
@@ -779,6 +800,12 @@ export default async function MiReinoPage() {
                     territories={allTerritories}
                     kingdoms={kingdoms}
                     selectedKingdomId={selectedKingdom.id}
+                  />
+
+                  <ScoutReportsPanel
+                    reports={scoutReports}
+                    territories={allTerritories}
+                    kingdoms={kingdoms}
                   />
 
                   <section className="grid gap-8 lg:grid-cols-2">
