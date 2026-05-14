@@ -32,7 +32,16 @@ export async function selectKingdom(formData: FormData) {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.kingdom_id) {
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  const isAdmin = Boolean(
+    user.email && adminEmails.includes(user.email.toLowerCase()),
+  );
+
+  if (profile?.kingdom_id && !isAdmin) {
     redirect("/mi-reino");
   }
 
@@ -460,4 +469,40 @@ export async function resolveTerritoryDispute(
     ok: Boolean(result?.ok),
     message: result?.message ?? "No se pudo resolver la disputa.",
   };
+}
+
+export async function leaveKingdom() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user?.email) {
+    redirect("/login");
+  }
+
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!adminEmails.includes(user.email.toLowerCase())) {
+    redirect("/mi-reino");
+  }
+
+  await supabase
+    .from("profiles")
+    .update({
+      kingdom_id: null,
+    })
+    .eq("id", user.id);
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/facciones");
+  revalidatePath("/mundo");
+  revalidatePath("/mapa");
+
+  redirect("/mi-reino");
 }

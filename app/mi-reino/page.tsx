@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
-import { selectKingdom, signOut } from "./actions";
+import { leaveKingdom, selectKingdom, signOut } from "./actions";
 import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
@@ -1186,12 +1186,25 @@ export default async function MiReinoPage({
                     </p>
 
                     {isAdmin && (
-                      <Link
-                        href="/admin"
-                        className="mt-6 flex w-full justify-center border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
-                      >
-                        Panel admin
-                      </Link>
+                      <>
+                        <Link
+                          href="/admin"
+                          className="mt-6 flex w-full justify-center border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
+                        >
+                          Panel admin
+                        </Link>
+
+                        {selectedKingdom && (
+                          <form action={leaveKingdom}>
+                            <button
+                              type="submit"
+                              className="mt-4 w-full border border-[#854d0e] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:border-[#f59e0b] hover:bg-[#7c2d12]"
+                            >
+                              Salir de facción
+                            </button>
+                          </form>
+                        )}
+                      </>
                     )}
 
                     <form action={signOut}>
