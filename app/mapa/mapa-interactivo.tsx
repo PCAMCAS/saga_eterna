@@ -339,7 +339,7 @@ export function MapaInteractivo({
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-[#f3eee8]">
-      <header className="fixed left-0 right-0 top-0 z-30 border-b border-[#3a0c12] bg-black/80 backdrop-blur">
+      <header className="fixed left-0 right-0 top-0 z-10 border-b border-[#3a0c12] bg-black/80 backdrop-blur">
         <div className="flex items-center justify-between px-6 py-4">
           <Link
             href="/"
@@ -377,7 +377,7 @@ export function MapaInteractivo({
             <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/10" />
 
             <svg
-              className="pointer-events-none absolute inset-0 h-full w-full"
+              className="pointer-events-none absolute inset-0 z-0 h-full w-full"
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
             >
@@ -449,7 +449,7 @@ export function MapaInteractivo({
                     key={territory.id}
                     type="button"
                     onClick={() => setSelectedTerritoryId(territory.id)}
-                    className="group absolute grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center"
+                    className="group absolute z-30 grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center hover:z-[998]"
                     style={{
                       left: `${territory.x}%`,
                       top: `${territory.y}%`,
@@ -466,7 +466,7 @@ export function MapaInteractivo({
                       ].join(" ")}
                     />
 
-                    <div className="pointer-events-none absolute left-1/2 top-7 z-40 hidden w-56 -translate-x-1/2 border border-[#3a0c12] bg-black/95 p-3 text-center shadow-2xl group-hover:block">
+                    <div className="pointer-events-none absolute left-1/2 top-7 z-[999] hidden w-56 -translate-x-1/2 border border-[#3a0c12] bg-black/95 p-3 text-center shadow-2xl group-hover:block">
                       <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
                         {seaNode ? "Nodo marítimo" : "Nodo terrestre"}
                       </p>
@@ -490,7 +490,7 @@ export function MapaInteractivo({
                   key={territory.id}
                   type="button"
                   onClick={() => setSelectedTerritoryId(territory.id)}
-                  className="group absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center"
+                  className="group absolute z-30 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center hover:z-[998]"
                   style={{
                     left: `${territory.x}%`,
                     top: `${territory.y}%`,
@@ -513,7 +513,7 @@ export function MapaInteractivo({
                     }}
                   />
 
-                  <div className="pointer-events-none absolute left-1/2 top-8 z-40 hidden w-64 -translate-x-1/2 border border-[#3a0c12] bg-[#050203]/95 p-4 text-left shadow-2xl group-hover:block">
+                  <div className="pointer-events-none absolute left-1/2 top-8 z-[999] hidden w-64 -translate-x-1/2 border border-[#3a0c12] bg-[#050203]/95 p-4 text-left shadow-2xl group-hover:block">
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
                       {isCapital ? "Capital" : "Ciudad"}
                     </p>
@@ -549,7 +549,7 @@ export function MapaInteractivo({
               );
             })}
 
-            <div className="absolute left-5 top-5 z-20 border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
+            <div className="absolute left-5 top-5 z-[900] border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
               <p className="font-black uppercase tracking-[0.28em] text-[#d83a3a]">
                 Capas
               </p>
@@ -612,7 +612,7 @@ export function MapaInteractivo({
             </div>
 
             {selectedTerritory && (
-              <aside className="absolute right-5 top-5 z-20 w-[390px] border border-[#3a0c12] bg-black/85 shadow-2xl backdrop-blur">
+              <aside className="absolute right-5 top-5 z-[1000] w-[390px] border border-[#3a0c12] bg-black/85 shadow-2xl backdrop-blur">
                 <div className="border-b border-[#3a0c12] p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -935,7 +935,7 @@ export function MapaInteractivo({
             )}
 
             {showLegend && !selectedTerritory && (
-              <div className="absolute bottom-5 right-5 z-20 border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
+              <div className="absolute bottom-5 right-5 z-[900] border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
                 <p className="font-black uppercase tracking-[0.28em] text-[#d83a3a]">
                   Leyenda
                 </p>
