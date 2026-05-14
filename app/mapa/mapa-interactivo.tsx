@@ -1,5 +1,8 @@
 "use client";
 
+import { CompactBuildingActions } from "@/components/compact-building-actions";
+import { orderBuildingUpgradeFromForm } from "@/app/mi-reino/actions";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
@@ -56,6 +59,26 @@ type ScoutReport = {
   created_at: string | null;
 };
 
+type TerritoryEconomy = {
+  territory_id: string;
+  gold: number;
+  food: number;
+  gold_building_level: number;
+  food_building_level: number;
+  barracks_level: number;
+};
+
+type BuildingOrder = {
+  id: string;
+  territory_id: string;
+  building_type: "GOLD" | "FOOD" | "BARRACKS";
+  target_level: number;
+  cost_gold: number;
+  completes_day: number;
+  completes_year: number;
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
+};
+
 type MapaInteractivoProps = {
   kingdoms: Kingdom[];
   territories: Territory[];
@@ -67,6 +90,8 @@ type MapaInteractivoProps = {
   currentYear: number;
   disputes: TerritoryDispute[];
   scoutReports: ScoutReport[];
+  territoryEconomy: TerritoryEconomy[];
+  buildingOrders: BuildingOrder[];
 };
 
 const SEA_NODE_NAMES = new Set([
@@ -98,6 +123,8 @@ export function MapaInteractivo({
   currentYear,
   disputes,
   scoutReports,
+  territoryEconomy,
+  buildingOrders,
 }: MapaInteractivoProps) {
   const router = useRouter();
   const [showLandRoutes, setShowLandRoutes] = useState(true);
@@ -166,6 +193,22 @@ export function MapaInteractivo({
         (report) => report.territory_id === selectedTerritory.id,
       ) ?? null
     : null;
+
+  const selectedTerritoryEconomy = selectedTerritory
+    ? territoryEconomy.find(
+        (entry) => entry.territory_id === selectedTerritory.id,
+      ) ?? null
+    : null;
+
+  const selectedPendingBuildingTypes = selectedTerritory
+    ? buildingOrders
+        .filter(
+          (order) =>
+            order.territory_id === selectedTerritory.id &&
+            order.status === "PENDING",
+        )
+        .map((order) => order.building_type)
+    : [];
 
   const selectedIsStation = selectedTerritory?.type === "STATION";
   const selectedIsOwned =
@@ -648,6 +691,30 @@ export function MapaInteractivo({
                         </span>
                       </p>
                     )}
+
+                    {!selectedIsStation &&
+                      selectedIsOwned &&
+                      selectedTerritoryEconomy && (
+                        <div className="mt-6">
+                          <CompactBuildingActions
+                            territoryId={selectedTerritory.id}
+                            territoryType={selectedTerritory.type}
+                            gold={Number(selectedTerritoryEconomy.gold ?? 0)}
+                            food={Number(selectedTerritoryEconomy.food ?? 0)}
+                            goldBuildingLevel={Number(
+                              selectedTerritoryEconomy.gold_building_level ?? 0,
+                            )}
+                            foodBuildingLevel={Number(
+                              selectedTerritoryEconomy.food_building_level ?? 0,
+                            )}
+                            barracksLevel={Number(
+                              selectedTerritoryEconomy.barracks_level ?? 0,
+                            )}
+                            pendingBuildingTypes={selectedPendingBuildingTypes}
+                            action={orderBuildingUpgradeFromForm}
+                          />
+                        </div>
+                      )}
                   </div>
                 </div>
 
