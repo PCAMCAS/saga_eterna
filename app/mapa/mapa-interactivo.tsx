@@ -921,7 +921,7 @@ export function MapaInteractivo({
               </aside>
             )}
 
-            {showLegend && (
+            {showLegend && !selectedTerritory && (
               <div className="absolute bottom-5 right-5 z-20 border border-[#3a0c12] bg-black/80 p-4 text-xs shadow-2xl backdrop-blur">
                 <p className="font-black uppercase tracking-[0.28em] text-[#d83a3a]">
                   Leyenda
