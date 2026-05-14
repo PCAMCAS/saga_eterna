@@ -5,6 +5,7 @@ import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
 import { ScoutReportsPanel } from "./scout-reports-panel";
+import { EconomyPanel } from "./economy-panel";
 
 type Kingdom = {
   id: string;
@@ -101,6 +102,26 @@ type ScoutReport = {
   created_at: string | null;
 };
 
+type TerritoryEconomy = {
+  territory_id: string;
+  gold: number;
+  food: number;
+  gold_building_level: number;
+  food_building_level: number;
+  barracks_level: number;
+};
+
+type BuildingOrder = {
+  id: string;
+  territory_id: string;
+  building_type: "GOLD" | "FOOD" | "BARRACKS";
+  target_level: number;
+  cost_gold: number;
+  completes_day: number;
+  completes_year: number;
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
+};
+
 function formatSoldiers(value: number) {
   return value.toLocaleString("es-ES");
 }
@@ -144,6 +165,8 @@ export default async function MiReinoPage({
   let territoryDisputes: TerritoryDispute[] = [];
   let territoryDisputeAttackers: TerritoryDisputeAttacker[] = [];
   let scoutReports: ScoutReport[] = [];
+  let territoryEconomy: TerritoryEconomy[] = [];
+  let buildingOrders: BuildingOrder[] = [];
   let occupiedKingdomIds = new Set<string>();
 
   let adjacentTerritories: {
@@ -205,6 +228,8 @@ export default async function MiReinoPage({
       { data: disputeData },
       { data: disputeAttackerData },
       { data: scoutReportData },
+      { data: territoryEconomyData },
+      { data: buildingOrderData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
       supabase.from("profiles").select("kingdom_id").not("kingdom_id", "is", null),
@@ -255,6 +280,18 @@ export default async function MiReinoPage({
         )
         .order("created_at", { ascending: false })
         .limit(20),
+      supabase
+        .from("territory_economy")
+        .select(
+          "territory_id, gold, food, gold_building_level, food_building_level, barracks_level",
+        ),
+      supabase
+        .from("building_orders")
+        .select(
+          "id, territory_id, building_type, target_level, cost_gold, completes_day, completes_year, status",
+        )
+        .eq("status", "PENDING")
+        .order("completes_tick", { ascending: true }),
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
@@ -271,6 +308,8 @@ export default async function MiReinoPage({
     territoryDisputes = (disputeData ?? []) as TerritoryDispute[];
     territoryDisputeAttackers = (disputeAttackerData ?? []) as TerritoryDisputeAttacker[];
     scoutReports = (scoutReportData ?? []) as ScoutReport[];
+    territoryEconomy = (territoryEconomyData ?? []) as TerritoryEconomy[];
+    buildingOrders = (buildingOrderData ?? []) as BuildingOrder[];
 
     if (gameStateData) {
       currentDay = Number(gameStateData.current_day);
@@ -823,6 +862,12 @@ export default async function MiReinoPage({
                     reports={scoutReports}
                     territories={allTerritories}
                     kingdoms={kingdoms}
+                  />
+
+                  <EconomyPanel
+                    territories={ownedTerritories}
+                    economy={territoryEconomy}
+                    buildingOrders={buildingOrders}
                   />
 
                   <section className="grid gap-8 lg:grid-cols-2">
