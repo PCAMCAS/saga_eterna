@@ -558,3 +558,46 @@ export async function orderBuildingUpgradeFromForm(formData: FormData) {
     formData,
   );
 }
+
+export async function buyMercenaries(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const capitalId = String(formData.get("capitalId") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+
+  if (!capitalId || !Number.isFinite(amount) || amount <= 0) {
+    return {
+      ok: false,
+      message: "Debes indicar una capital y una cantidad válida.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("buy_mercenaries", {
+    p_capital_id: capitalId,
+    p_amount: Math.floor(amount),
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+
+  const result = data as {
+    ok?: boolean;
+    message?: string;
+  } | null;
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/mapa");
+  revalidatePath("/admin");
+
+  return {
+    ok: Boolean(result?.ok),
+    message: result?.message ?? "No se pudo contratar mercenarios.",
+  };
+}

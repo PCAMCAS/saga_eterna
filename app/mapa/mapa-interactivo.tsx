@@ -1,6 +1,7 @@
 "use client";
 
 import { CompactBuildingActions } from "@/components/compact-building-actions";
+import { CompactMercenaryActions } from "@/components/compact-mercenary-actions";
 import { orderBuildingUpgradeFromForm } from "@/app/mi-reino/actions";
 
 import Link from "next/link";
@@ -28,6 +29,7 @@ type Territory = {
   x: number;
   y: number;
   soldiers: number | null;
+  mercenaries?: number | null;
   owner_kingdom_id: string | null;
   is_disputed: boolean;
 };
@@ -713,6 +715,17 @@ export function MapaInteractivo({
                             pendingBuildingTypes={selectedPendingBuildingTypes}
                             action={orderBuildingUpgradeFromForm}
                           />
+
+                          {selectedTerritory.type === "CAPITAL" && (
+                            <CompactMercenaryActions
+                              capitalId={selectedTerritory.id}
+                              gold={Number(selectedTerritoryEconomy.gold ?? 0)}
+                              mercenaries={Number(
+                                selectedTerritory.mercenaries ?? 0,
+                              )}
+                              isDisputed={Boolean(selectedTerritory.is_disputed)}
+                            />
+                          )}
                         </div>
                       )}
                   </div>

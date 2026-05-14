@@ -44,6 +44,7 @@ type PlayerAction = {
   type: "SCOUT" | "REINFORCE" | "ATTACK";
   game_day: number;
   soldiers: number | null;
+  mercenaries?: number | null;
   source_territory_id: string | null;
   target_territory_id: string | null;
   created_at: string | null;

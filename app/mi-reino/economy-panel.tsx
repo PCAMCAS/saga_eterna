@@ -2,12 +2,14 @@
 
 import { BuildingUpgradeActions } from "@/components/building-upgrade-actions";
 import { orderBuildingUpgradeFromForm } from "./actions";
+import { MercenaryPurchasePanel } from "./mercenary-purchase-panel";
 
 type Territory = {
   id: string;
   name: string;
   type: "CAPITAL" | "CITY" | "STATION";
   is_disputed?: boolean;
+  mercenaries?: number;
 };
 
 type TerritoryEconomy = {
@@ -162,20 +164,31 @@ export function EconomyPanel({
               .map((order) => order.building_type);
 
             return (
-              <BuildingUpgradeActions
-                key={territory.id}
-                territoryId={territory.id}
-                territoryName={territory.name}
-                territoryType={territory.type}
-                isDisputed={Boolean(territory.is_disputed)}
-                gold={Number(entry?.gold ?? 0)}
-                food={Number(entry?.food ?? 0)}
-                goldBuildingLevel={Number(entry?.gold_building_level ?? 0)}
-                foodBuildingLevel={Number(entry?.food_building_level ?? 0)}
-                barracksLevel={Number(entry?.barracks_level ?? 0)}
-                pendingBuildingTypes={pendingBuildingTypes}
-                action={orderBuildingUpgradeFromForm}
-              />
+              <div key={territory.id}>
+                <BuildingUpgradeActions
+                  territoryId={territory.id}
+                  territoryName={territory.name}
+                  territoryType={territory.type}
+                  isDisputed={Boolean(territory.is_disputed)}
+                  gold={Number(entry?.gold ?? 0)}
+                  food={Number(entry?.food ?? 0)}
+                  goldBuildingLevel={Number(entry?.gold_building_level ?? 0)}
+                  foodBuildingLevel={Number(entry?.food_building_level ?? 0)}
+                  barracksLevel={Number(entry?.barracks_level ?? 0)}
+                  pendingBuildingTypes={pendingBuildingTypes}
+                  action={orderBuildingUpgradeFromForm}
+                />
+
+                {territory.type === "CAPITAL" && (
+                  <MercenaryPurchasePanel
+                    capitalId={territory.id}
+                    capitalName={territory.name}
+                    gold={Number(entry?.gold ?? 0)}
+                    mercenaries={Number(territory.mercenaries ?? 0)}
+                    isDisputed={Boolean(territory.is_disputed)}
+                  />
+                )}
+              </div>
             );
           })
         )}

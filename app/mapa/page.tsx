@@ -16,6 +16,7 @@ type Territory = {
   x: number;
   y: number;
   soldiers: number | null;
+  mercenaries?: number | null;
   owner_kingdom_id: string | null;
   is_disputed: boolean;
 };
@@ -53,6 +54,26 @@ type ScoutReport = {
   created_at: string | null;
 };
 
+type TerritoryEconomy = {
+  territory_id: string;
+  gold: number;
+  food: number;
+  gold_building_level: number;
+  food_building_level: number;
+  barracks_level: number;
+};
+
+type BuildingOrder = {
+  id: string;
+  territory_id: string;
+  building_type: "GOLD" | "FOOD" | "BARRACKS";
+  target_level: number;
+  cost_gold: number;
+  completes_day: number;
+  completes_year: number;
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
+};
+
 export default async function MapaPage() {
   const supabase = await createClient();
 
@@ -65,6 +86,8 @@ export default async function MapaPage() {
   let currentDay = 1;
   let currentYear = 725;
   let scoutReports: ScoutReport[] = [];
+  let territoryEconomy: TerritoryEconomy[] = [];
+  let buildingOrders: BuildingOrder[] = [];
 
   const [
     { data: kingdoms },
@@ -113,12 +136,32 @@ export default async function MapaPage() {
 
     scoutUsed = Boolean(todayScoutAction);
 
-    const { data: scoutReportData } = await supabase
-      .from("scout_reports")
-      .select("id, territory_id, game_day, year, observed_soldiers, created_at")
-      .order("created_at", { ascending: false });
+    const [
+      { data: scoutReportData },
+      { data: territoryEconomyData },
+      { data: buildingOrderData },
+    ] = await Promise.all([
+      supabase
+        .from("scout_reports")
+        .select("id, territory_id, game_day, year, observed_soldiers, created_at")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("territory_economy")
+        .select(
+          "territory_id, gold, food, gold_building_level, food_building_level, barracks_level",
+        ),
+      supabase
+        .from("building_orders")
+        .select(
+          "id, territory_id, building_type, target_level, cost_gold, completes_day, completes_year, status",
+        )
+        .eq("status", "PENDING")
+        .order("completes_tick", { ascending: true }),
+    ]);
 
     scoutReports = (scoutReportData ?? []) as ScoutReport[];
+    territoryEconomy = (territoryEconomyData ?? []) as TerritoryEconomy[];
+    buildingOrders = (buildingOrderData ?? []) as BuildingOrder[];
   }
 
   const rawTerritories = (territories ?? []) as Territory[];
@@ -146,6 +189,8 @@ export default async function MapaPage() {
       currentYear={currentYear}
       disputes={(disputes ?? []) as TerritoryDispute[]}
       scoutReports={scoutReports}
+      territoryEconomy={territoryEconomy}
+      buildingOrders={buildingOrders}
     />
   );
 }
