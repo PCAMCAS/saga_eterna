@@ -506,3 +506,55 @@ export async function leaveKingdom() {
 
   redirect("/mi-reino");
 }
+
+export async function orderBuildingUpgrade(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const territoryId = String(formData.get("territoryId") ?? "");
+  const buildingType = String(formData.get("buildingType") ?? "");
+
+  if (!territoryId || !buildingType) {
+    return {
+      ok: false,
+      message: "Debes seleccionar territorio y edificio.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("order_building_upgrade", {
+    p_territory_id: territoryId,
+    p_building_type: buildingType,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+
+  const result = data as {
+    ok?: boolean;
+    message?: string;
+  } | null;
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/admin");
+
+  return {
+    ok: Boolean(result?.ok),
+    message: result?.message ?? "No se pudo ordenar la construcción.",
+  };
+}
+
+export async function orderBuildingUpgradeFromForm(formData: FormData) {
+  await orderBuildingUpgrade(
+    {
+      ok: false,
+      message: "",
+    },
+    formData,
+  );
+}
