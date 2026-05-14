@@ -243,6 +243,8 @@ export async function reinforceTerritory(
   const fromTerritoryId = String(formData.get("fromTerritoryId") ?? "");
   const targetTerritoryId = String(formData.get("targetTerritoryId") ?? "");
   const amount = Number(formData.get("amount") ?? 0);
+  const soldiersAmount = Number(formData.get("soldiersAmount") ?? amount);
+  const mercenariesAmount = Number(formData.get("mercenariesAmount") ?? 0);
 
   if (!fromTerritoryId || !targetTerritoryId) {
     return {
@@ -260,10 +262,11 @@ export async function reinforceTerritory(
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("reinforce_territory_atomic", {
+  const { data, error } = await supabase.rpc("reinforce_territory_mixed_atomic", {
     p_from_territory_id: fromTerritoryId,
     p_target_territory_id: targetTerritoryId,
-    p_amount: amount,
+    p_soldiers_amount: Math.floor(soldiersAmount),
+    p_mercenaries_amount: Math.floor(mercenariesAmount),
   });
 
   if (error) {
@@ -295,6 +298,8 @@ export async function attackTerritory(
   const fromTerritoryId = String(formData.get("fromTerritoryId") ?? "");
   const targetTerritoryId = String(formData.get("targetTerritoryId") ?? "");
   const amount = Number(formData.get("amount") ?? 0);
+  const soldiersAmount = Number(formData.get("soldiersAmount") ?? amount);
+  const mercenariesAmount = Number(formData.get("mercenariesAmount") ?? 0);
 
   if (!fromTerritoryId || !targetTerritoryId) {
     return {
@@ -312,10 +317,11 @@ export async function attackTerritory(
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("attack_territory_atomic", {
+  const { data, error } = await supabase.rpc("attack_territory_mixed_atomic", {
     p_from_territory_id: fromTerritoryId,
     p_target_territory_id: targetTerritoryId,
-    p_amount: amount,
+    p_soldiers_amount: Math.floor(soldiersAmount),
+    p_mercenaries_amount: Math.floor(mercenariesAmount),
   });
 
   if (error) {
