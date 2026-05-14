@@ -26,6 +26,11 @@ function getMadridParts() {
   };
 }
 
+function madridDateIso() {
+  const madrid = getMadridParts();
+  return `${madrid.year}-${madrid.month}-${madrid.day}`;
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -47,14 +52,16 @@ export async function GET(request: Request) {
   }
 
   const madrid = getMadridParts();
+  const todayIso = madridDateIso();
 
-  const isMidnightMadrid = madrid.hour === "00";
+  const isDailyAdvanceWindow = madrid.hour === "00" || madrid.hour === "01";
 
-  if (!isMidnightMadrid) {
+  if (!isDailyAdvanceWindow) {
     return NextResponse.json({
       ok: true,
       skipped: true,
-      message: `No es medianoche peninsular. Hora Europe/Madrid: ${madrid.hour}:${madrid.minute}.`,
+      message: `No es ventana de avance diario. Hora Europe/Madrid: ${madrid.hour}:${madrid.minute}.`,
+      madridDate: todayIso,
     });
   }
 
@@ -62,7 +69,7 @@ export async function GET(request: Request) {
 
   const { data: gameState, error: stateError } = await supabase
     .from("game_state")
-    .select("current_day, current_year, updated_at")
+    .select("last_advanced_real_date")
     .limit(1)
     .maybeSingle();
 
@@ -76,23 +83,12 @@ export async function GET(request: Request) {
     );
   }
 
-  const lastUpdatedDate = gameState?.updated_at
-    ? new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Europe/Madrid",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date(gameState.updated_at))
-    : null;
-
-  const todayMadrid = `${madrid.day}/${madrid.month}/${madrid.year}`;
-
-  if (lastUpdatedDate === todayMadrid) {
+  if (gameState?.last_advanced_real_date === todayIso) {
     return NextResponse.json({
       ok: true,
       skipped: true,
       message: "La campaña ya fue avanzada hoy.",
-      date: todayMadrid,
+      madridDate: todayIso,
     });
   }
 
@@ -111,7 +107,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ok: true,
     advanced: true,
-    madridDate: todayMadrid,
+    madridDate: todayIso,
     result: data,
   });
 }
