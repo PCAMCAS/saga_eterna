@@ -26,6 +26,19 @@ function label(type: BuildingType) {
   return "Cuartel";
 }
 
+function compactBenefit(type: BuildingType, level: number) {
+  if (level <= 0) return "sin bonus";
+
+  const goldIncome = [25, 50, 100, 150, 225, 325, 450, 600, 800, 1000];
+  const foodIncome = [25, 75, 150, 250, 400, 600, 850, 1150, 1500, 2000];
+  const barracksCapacity = [10, 25, 50, 80, 120, 175, 250, 350, 500, 750];
+
+  if (type === "GOLD") return `+${goldIncome[level - 1] ?? 0} oro/d`;
+  if (type === "FOOD") return `+${foodIncome[level - 1] ?? 0} comida/d`;
+
+  return `${barracksCapacity[level - 1] ?? 0} sold/d`;
+}
+
 function cost(type: BuildingType, nextLevel: number) {
   const economyCosts = [
     150,
@@ -119,7 +132,7 @@ function UpgradeMiniForm({
           ? `${label(type)} máx.`
           : pending
             ? `${label(type)} en cola`
-            : `${label(type)} N${nextLevel} · ${upgradeCost}`}
+            : `${label(type)} N${nextLevel} · ${compactBenefit(type, nextLevel)} · ${upgradeCost}`}
       </CompactButton>
     </form>
   );

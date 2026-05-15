@@ -40,6 +40,30 @@ function buildingDescription(type: BuildingType) {
   return "Permite entrenar soldados regulares desde la capital.";
 }
 
+function buildingBenefit(type: BuildingType, level: number) {
+  if (level <= 0) {
+    if (type === "GOLD") return "+0 oro/día";
+    if (type === "FOOD") return "+0 comida/día";
+    return "Sin entrenamiento";
+  }
+
+  const goldIncome = [25, 50, 100, 150, 225, 325, 450, 600, 800, 1000];
+  const foodIncome = [25, 75, 150, 250, 400, 600, 850, 1150, 1500, 2000];
+  const barracksCapacity = [10, 25, 50, 80, 120, 175, 250, 350, 500, 750];
+
+  if (type === "GOLD") {
+    return `+${goldIncome[level - 1] ?? 0} oro/día`;
+  }
+
+  if (type === "FOOD") {
+    return `+${foodIncome[level - 1] ?? 0} comida/día`;
+  }
+
+  const unitCost = level >= 10 ? 3 : level >= 7 ? 4 : 5;
+
+  return `${barracksCapacity[level - 1] ?? 0} soldados/día · ${unitCost} oro/soldado`;
+}
+
 function nextCost(type: BuildingType, nextLevel: number) {
   const economyCosts = [
     150,
@@ -151,7 +175,10 @@ function BuildingCard({
               Actual
             </p>
             <p className="mt-1 text-2xl font-black text-[#fff8ef]">
-              {currentLevel}
+              Nivel {currentLevel}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-[#b6a9a1]">
+              {buildingBenefit(type, currentLevel)}
             </p>
           </div>
 
@@ -160,7 +187,10 @@ function BuildingCard({
               Siguiente
             </p>
             <p className="mt-1 text-2xl font-black text-[#fff8ef]">
-              {maxed ? "Máx." : nextLevel}
+              {maxed ? "Máx." : `Nivel ${nextLevel}`}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-[#b6a9a1]">
+              {maxed ? "Nivel máximo alcanzado" : buildingBenefit(type, nextLevel)}
             </p>
           </div>
         </div>

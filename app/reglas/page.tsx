@@ -33,6 +33,8 @@ const sections = [
     title: "Edificios",
     items: [
       "El edificio de oro aumenta la producción diaria de oro del territorio.",
+      "En capitales, los edificios pueden subir hasta nivel 10.",
+      "En ciudades, el edificio de oro puede subir hasta nivel 3.",
       "El edificio de comida solo puede construirse en capitales.",
       "El cuartel solo puede construirse en capitales.",
       "Las ciudades solo pueden construir edificios de oro.",
@@ -45,6 +47,8 @@ const sections = [
       "Los soldados regulares se entrenan en capitales con cuartel.",
       "Cada soldado regular cuesta 5 oro al entrenarse.",
       "El entrenamiento se completa al inicio del siguiente día.",
+      "Los cuarteles de mayor nivel permiten entrenar más soldados por día.",
+      "A partir de cuartel nivel 7, entrenar soldados es más barato.",
       "Cada soldado regular consume 1 comida al día.",
       "Si no hay comida suficiente, los soldados sin suministros se pierden.",
     ],
