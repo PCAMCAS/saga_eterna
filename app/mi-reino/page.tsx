@@ -6,6 +6,7 @@ import { TroopMovementsPanel } from "./troop-movements-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
 import { ScoutReportsPanel } from "./scout-reports-panel";
 import { EconomyPanel } from "./economy-panel";
+import { PrivateLogsPanel } from "./private-logs-panel";
 
 type Kingdom = {
   id: string;
@@ -123,6 +124,15 @@ type BuildingOrder = {
   status: "PENDING" | "COMPLETED" | "CANCELLED";
 };
 
+type PrivateLog = {
+  id: string;
+  game_day: number;
+  year: number;
+  type: "SYSTEM" | "ECONOMY" | "MERCENARIES" | "BUILD" | "TRAINING" | "WARNING";
+  message: string;
+  created_at: string | null;
+};
+
 function formatSoldiers(value: number) {
   return value.toLocaleString("es-ES");
 }
@@ -168,6 +178,7 @@ export default async function MiReinoPage({
   let scoutReports: ScoutReport[] = [];
   let territoryEconomy: TerritoryEconomy[] = [];
   let buildingOrders: BuildingOrder[] = [];
+  let privateLogs: PrivateLog[] = [];
   let occupiedKingdomIds = new Set<string>();
 
   let adjacentTerritories: {
@@ -231,6 +242,7 @@ export default async function MiReinoPage({
       { data: scoutReportData },
       { data: territoryEconomyData },
       { data: buildingOrderData },
+      { data: privateLogData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
       supabase.from("profiles").select("kingdom_id").not("kingdom_id", "is", null),
@@ -293,6 +305,11 @@ export default async function MiReinoPage({
         )
         .eq("status", "PENDING")
         .order("completes_tick", { ascending: true }),
+      supabase
+        .from("kingdom_private_logs")
+        .select("id, game_day, year, type, message, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
@@ -311,6 +328,7 @@ export default async function MiReinoPage({
     scoutReports = (scoutReportData ?? []) as ScoutReport[];
     territoryEconomy = (territoryEconomyData ?? []) as TerritoryEconomy[];
     buildingOrders = (buildingOrderData ?? []) as BuildingOrder[];
+    privateLogs = (privateLogData ?? []) as PrivateLog[];
 
     if (gameStateData) {
       currentDay = Number(gameStateData.current_day);
@@ -870,6 +888,8 @@ export default async function MiReinoPage({
                     economy={territoryEconomy}
                     buildingOrders={buildingOrders}
                   />
+
+                  <PrivateLogsPanel logs={privateLogs} />
 
                   <section className="grid gap-8 lg:grid-cols-2">
                     <div className="border border-[#251014] bg-black/45">
