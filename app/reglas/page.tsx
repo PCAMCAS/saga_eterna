@@ -87,6 +87,19 @@ const sections = [
     ],
   },
   {
+    title: "Asaltos",
+    items: [
+      "Puedes asaltar territorios enemigos conectados desde un territorio propio.",
+      "Un asalto viaja como un ataque, pero su objetivo es saquear oro.",
+      "Puedes enviar soldados regulares, mercenarios o ambos.",
+      "Los asaltos no conquistan territorio.",
+      "Los asaltos no pueden abrir disputa.",
+      "Si el asalto gana, roba el oro almacenado en el territorio objetivo.",
+      "El oro robado vuelve al territorio de origen del asalto.",
+      "Si el asalto falla, los defensores rechazan la incursión.",
+    ],
+  },
+  {
     title: "Disputas presenciales",
     items: [
       "Si un ataque entre jugadores ganaría el territorio, puede abrirse una disputa.",
