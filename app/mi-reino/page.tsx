@@ -12,6 +12,7 @@ import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
 import { ArmyOverviewPanel } from "./army-overview-panel";
 import { CommandCenterPanel } from "./command-center-panel";
+import { KingdomSidebarPanel } from "./kingdom-sidebar-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
 import { ScoutReportsPanel } from "./scout-reports-panel";
 import { EconomyPanel } from "./economy-panel";
@@ -1399,45 +1400,26 @@ export default async function MiReinoPage({
                 </div>
 
                 <aside className="space-y-6">
-                  <div className="border border-[#251014] bg-black/45 p-6">
-                    <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
-                      Cuenta
-                    </p>
-                    <p className="mt-4 text-lg font-black text-[#fff8ef]">
-                      {user.email}
-                    </p>
-
-                    {isAdmin && (
-                      <>
-                        <Link
-                          href="/admin"
-                          className="mt-6 flex w-full justify-center border border-[#c3222b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:bg-[#b91c1c]"
-                        >
-                          Panel admin
-                        </Link>
-
-                        {selectedKingdom && (
-                          <form action={leaveKingdom}>
-                            <button
-                              type="submit"
-                              className="mt-4 w-full border border-[#854d0e] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:border-[#f59e0b] hover:bg-[#7c2d12]"
-                            >
-                              Salir de facción
-                            </button>
-                          </form>
-                        )}
-                      </>
-                    )}
-
-                    <form action={signOut}>
-                      <button
-                        type="submit"
-                        className="mt-4 w-full border border-[#3a0c12] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.28em] text-[#fff8ef] transition hover:border-[#c3222b] hover:bg-[#b91c1c]"
-                      >
-                        Cerrar sesión
-                      </button>
-                    </form>
-                  </div>
+                  <KingdomSidebarPanel
+                    userEmail={user.email}
+                    isAdmin={isAdmin}
+                    currentDay={currentDay}
+                    currentYear={currentYear}
+                    vulnerableTerritories={ownedTerritories
+                      .filter(
+                        (territory) =>
+                          territory.type !== "STATION" &&
+                          Number(territory.soldiers ?? 0) +
+                            Number(territory.mercenaries ?? 0) <=
+                            0,
+                      )
+                      .map((territory) => territory.name)}
+                    openDisputes={ownOpenDisputes.length}
+                    troopMovements={troopMovements.length}
+                    councilLines={councilLines}
+                    leaveKingdom={leaveKingdom}
+                    signOut={signOut}
+                  />
 
                   <DailyActionsPanel
                     territories={scoutTargets}
@@ -1445,8 +1427,6 @@ export default async function MiReinoPage({
                     currentDay={currentDay}
                     currentYear={currentYear}
                   />
-
-
                 </aside>
               </div>
               {/* Cierre dashboard Mi Reino */}
