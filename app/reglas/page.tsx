@@ -87,6 +87,18 @@ const sections = [
     ],
   },
   {
+    title: "Logística de recursos",
+    items: [
+      "El oro y la comida están almacenados en territorios concretos.",
+      "Puedes enviar oro o comida entre territorios propios conectados por ruta directa.",
+      "El recurso sale inmediatamente del territorio de origen.",
+      "El recurso llega al territorio de destino al avanzar los días según la duración de la ruta.",
+      "No puedes enviar más oro o comida del que tenga almacenado el territorio de origen.",
+      "Los transportes de recursos aparecen en Logística del Reino dentro de Mi Reino.",
+      "Cuando un transporte llega, se registra en los informes privados del reino.",
+    ],
+  },
+  {
     title: "Asaltos",
     items: [
       "Puedes asaltar territorios enemigos conectados desde un territorio propio.",
