@@ -1,10 +1,8 @@
 import Link from "next/link";
 import {
   ActionButton,
-  CommandCard,
   SectionTabs,
   StatTile,
-  StatusChip,
 } from "./kingdom-ui";
 import { createClient } from "@/utils/supabase/server";
 import { leaveKingdom, selectKingdom, signOut } from "./actions";
@@ -14,8 +12,7 @@ import { ArmyOverviewPanel } from "./army-overview-panel";
 import { CommandCenterPanel } from "./command-center-panel";
 import { KingdomSidebarPanel } from "./kingdom-sidebar-panel";
 import { OrdersLogPanel } from "./orders-log-panel";
-import { PlayerDisputesPanel } from "./player-disputes-panel";
-import { ScoutReportsPanel } from "./scout-reports-panel";
+import { DisputesIntelligencePanel } from "./disputes-intelligence-panel";
 import { EconomyPanel } from "./economy-panel";
 import { PrivateLogsPanel } from "./private-logs-panel";
 
@@ -1017,27 +1014,13 @@ export default async function MiReinoPage({
                     currentDay={currentDay}
                   />
 
-                  <PlayerDisputesPanel
-                    disputes={territoryDisputes.filter(
-                      (dispute) =>
-                        dispute.attacker_kingdom_id === selectedKingdom.id ||
-                        dispute.defender_kingdom_id === selectedKingdom.id ||
-                        territoryDisputeAttackers.some(
-                          (attacker) =>
-                            attacker.dispute_id === dispute.id &&
-                            attacker.kingdom_id === selectedKingdom.id,
-                        ),
-                    )}
-                    attackers={territoryDisputeAttackers}
-                    territories={allTerritories}
-                    kingdoms={kingdoms}
+                  <DisputesIntelligencePanel
                     selectedKingdomId={selectedKingdom.id}
-                  />
-
-                  <ScoutReportsPanel
-                    reports={scoutReports}
                     territories={allTerritories}
                     kingdoms={kingdoms}
+                    disputes={territoryDisputes}
+                    attackers={territoryDisputeAttackers}
+                    scoutReports={scoutReports}
                   />
 
                   <EconomyPanel
