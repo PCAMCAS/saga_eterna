@@ -1,4 +1,11 @@
 import Link from "next/link";
+import {
+  ActionButton,
+  CommandCard,
+  SectionTabs,
+  StatTile,
+  StatusChip,
+} from "./kingdom-ui";
 import { createClient } from "@/utils/supabase/server";
 import { leaveKingdom, selectKingdom, signOut } from "./actions";
 import { DailyActionsPanel } from "./daily-actions-panel";
@@ -23,6 +30,7 @@ type Territory = {
   x: number;
   y: number;
   soldiers: number;
+  mercenaries?: number | null;
   owner_kingdom_id: string | null;
 };
 
@@ -698,7 +706,132 @@ export default async function MiReinoPage({
                 </Link>
               </div>
             ) : selectedKingdom ? (
-              <div className="grid gap-8 xl:grid-cols-[1fr_380px]">
+              <div className="space-y-8">
+                <section
+                  id="resumen"
+                  className="border border-[#3a0c12] bg-gradient-to-br from-black via-[#090304] to-[#1a0508] shadow-[0_0_80px_rgba(0,0,0,0.45)]"
+                >
+                  <div className="grid gap-6 p-8 xl:grid-cols-[1.5fr_1fr_auto]">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.4em] text-[#d83a3a]">
+                        Mi Reino
+                      </p>
+                      <h1 className="mt-4 text-5xl font-black uppercase tracking-tight text-[#fff8ef]">
+                        {selectedKingdom.name}
+                      </h1>
+                      {selectedKingdom.leader && (
+                        <p className="mt-2 text-sm font-black uppercase tracking-[0.32em] text-[#ff4b4b]">
+                          Líder: {selectedKingdom.leader}
+                        </p>
+                      )}
+                      <p className="mt-5 max-w-2xl text-sm leading-7 text-[#b6a9a1]">
+                        Centro de mando del reino: economía, ejército, órdenes,
+                        disputas, registros privados y situación estratégica.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-4">
+                      <div className="border border-[#251014] bg-black/55 p-5">
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
+                          Cuenta
+                        </p>
+                        <p className="mt-3 text-lg font-black text-[#fff8ef]">
+                          {user.email}
+                        </p>
+                      </div>
+
+                      <div className="border border-[#251014] bg-black/55 p-5">
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
+                          Fecha actual
+                        </p>
+                        <p className="mt-3 text-2xl font-black uppercase text-[#fff8ef]">
+                          Día {currentDay} del {currentYear} d.C.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid content-start gap-3 xl:min-w-[260px]">
+                      {isAdmin && <ActionButton href="/admin">Panel admin</ActionButton>}
+                      <form action={leaveKingdom}>
+                        <button
+                          type="submit"
+                          className="w-full border border-[#854d0e] bg-black/70 px-5 py-3 text-center text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:border-[#f59e0b] hover:text-[#fef3c7]"
+                        >
+                          Salir de facción
+                        </button>
+                      </form>
+                      <form action={signOut}>
+                        <button
+                          type="submit"
+                          className="w-full border border-[#251014] bg-black/70 px-5 py-3 text-center text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:border-[#7f7470]"
+                        >
+                          Cerrar sesión
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+                  <StatTile
+                    label="Territorios"
+                    value={ownedTerritories.length}
+                    detail="Controlados"
+                  />
+                  <StatTile
+                    label="Soldados regulares"
+                    value={ownedTerritories.reduce(
+                      (total, territory) =>
+                        total + Number(territory.soldiers ?? 0),
+                      0,
+                    )}
+                    detail="Disponibles"
+                  />
+                  <StatTile
+                    label="Mercenarios"
+                    value={ownedTerritories.reduce(
+                      (total, territory) =>
+                        total + Number(territory.mercenaries ?? 0),
+                      0,
+                    )}
+                    detail="Contratados"
+                    tone="gold"
+                  />
+                  <StatTile
+                    label="Oro total"
+                    value={territoryEconomy.reduce(
+                      (total, entry) => total + Number(entry.gold ?? 0),
+                      0,
+                    )}
+                    detail="Almacenado"
+                    tone="gold"
+                  />
+                  <StatTile
+                    label="Comida total"
+                    value={territoryEconomy.reduce(
+                      (total, entry) => total + Number(entry.food ?? 0),
+                      0,
+                    )}
+                    detail="Almacenada"
+                    tone="food"
+                  />
+                  <StatTile
+                    label="Disputas"
+                    value={ownOpenDisputes.length}
+                    detail="Activas"
+                    tone="danger"
+                  />
+                  <StatTile
+                    label="En tránsito"
+                    value={troopMovements.length}
+                    detail="Órdenes / tropas"
+                    tone="blue"
+                  />
+                </section>
+
+                <SectionTabs />
+
+                <div className="grid gap-8 xl:grid-cols-[1fr_380px]">
                 <div className="space-y-8">
                   <div className="border border-[#251014] bg-black/45 p-6">
                     <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
@@ -1311,6 +1444,8 @@ export default async function MiReinoPage({
 
 
                 </aside>
+              </div>
+              {/* Cierre dashboard Mi Reino */}
               </div>
             ) : (
               <div>
