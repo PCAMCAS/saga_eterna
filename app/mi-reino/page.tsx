@@ -943,68 +943,7 @@ export default async function MiReinoPage({
                     </div>
                   </section>
 
-                  <section className="border border-[#251014] bg-black/45">
-                    <div className="border-b border-[#251014] p-6">
-                      <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
-                        Guarniciones
-                      </p>
-                      <h2 className="mt-3 text-3xl font-black uppercase text-[#fff8ef]">
-                        Estado del ejército
-                      </h2>
-                    </div>
 
-                    <div className="overflow-x-auto p-6">
-                      <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-[#251014] text-xs uppercase tracking-[0.25em] text-[#d83a3a]">
-                            <th className="py-3 pr-4">Territorio</th>
-                            <th className="py-3 pr-4">Tipo</th>
-                            <th className="py-3 pr-4">Soldados</th>
-                            <th className="py-3 pr-4">Estado</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ownedTerritories.map((territory) => {
-                            const soldiers = Number(territory.soldiers ?? 0);
-
-                            return (
-                              <tr
-                                key={territory.id}
-                                className="border-b border-[#151010] text-[#d7c9bd]"
-                              >
-                                <td className="py-4 pr-4 font-black text-[#fff8ef]">
-                                  {territory.name}
-                                </td>
-                                <td className="py-4 pr-4">
-                                  {territory.type === "CAPITAL"
-                                    ? "Capital"
-                                    : "Ciudad"}
-                                </td>
-                                <td className="py-4 pr-4 font-black text-[#fff8ef]">
-                                  {formatSoldiers(soldiers)}
-                                </td>
-                                <td className="py-4 pr-4">
-                                  {soldiers <= 0 ? (
-                                    <span className="border border-[#7f1d1d] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#fca5a5]">
-                                      Vulnerable
-                                    </span>
-                                  ) : soldiers >= 100 ? (
-                                    <span className="border border-[#3f6212] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#bef264]">
-                                      Bastión
-                                    </span>
-                                  ) : (
-                                    <span className="border border-[#854d0e] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#fde68a]">
-                                      Guarnecida
-                                    </span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
 
                   <ArmyOverviewPanel territories={ownedTerritories} />
 
