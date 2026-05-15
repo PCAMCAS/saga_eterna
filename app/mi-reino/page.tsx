@@ -13,6 +13,7 @@ import { TroopMovementsPanel } from "./troop-movements-panel";
 import { ArmyOverviewPanel } from "./army-overview-panel";
 import { CommandCenterPanel } from "./command-center-panel";
 import { KingdomSidebarPanel } from "./kingdom-sidebar-panel";
+import { OrdersLogPanel } from "./orders-log-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
 import { ScoutReportsPanel } from "./scout-reports-panel";
 import { EconomyPanel } from "./economy-panel";
@@ -1219,184 +1220,17 @@ export default async function MiReinoPage({
                     </div>
                   </section>
 
-                  <section className="border border-[#251014] bg-black/45">
-                    <div className="border-b border-[#251014] p-6">
-                      <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
-                        Cuartel de mando
-                      </p>
-                      <h2 className="mt-3 text-3xl font-black uppercase text-[#fff8ef]">
-                        Órdenes recientes
-                      </h2>
-                    </div>
-
-                    <div className="grid gap-6 p-6 lg:grid-cols-2">
-                      <div>
-                        <h3 className="text-sm font-black uppercase tracking-[0.25em] text-[#fde68a]">
-                          Órdenes privadas
-                        </h3>
-
-                        <div className="mt-4 space-y-3">
-                          {playerActions.length === 0 ? (
-                            <p className="text-sm leading-6 text-[#b6a9a1]">
-                              Aún no has emitido órdenes.
-                            </p>
-                          ) : (
-                            playerActions.slice(0, 10).map((action) => {
-                              const source = action.source_territory_id
-                                ? territoryById.get(action.source_territory_id)
-                                : null;
-
-                              const target = action.target_territory_id
-                                ? territoryById.get(action.target_territory_id)
-                                : null;
-
-                              return (
-                                <article
-                                  key={action.id}
-                                  className="border border-[#251014] bg-black/45 p-4"
-                                >
-                                  <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <span
-                                      className={[
-                                        "border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em]",
-                                        actionBadge(action.type),
-                                      ].join(" ")}
-                                    >
-                                      {actionLabel(action.type)}
-                                    </span>
-
-                                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-                                      Día {action.game_day}
-                                    </span>
-                                  </div>
-
-                                  <p className="mt-3 text-sm leading-6 text-[#d7c9bd]">
-                                    {source?.name ?? "Origen desconocido"}
-                                    {" → "}
-                                    {target?.name ?? "Objetivo desconocido"}
-                                  </p>
-
-                                  {(action.type === "REINFORCE" ||
-                                    action.type === "ATTACK") && (
-                                    <p className="mt-1 text-sm leading-6 text-[#b6a9a1]">
-                                      Soldados movilizados:{" "}
-                                      <span className="font-black text-[#fff8ef]">
-                                        {formatSoldiers(Number(action.soldiers ?? 0))}
-                                      </span>
-                                    </p>
-                                  )}
-
-                                  {action.type === "SCOUT" && (
-                                    <p className="mt-1 text-sm leading-6 text-[#b6a9a1]">
-                                      Investigación realizada.
-                                    </p>
-                                  )}
-                                </article>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="text-sm font-black uppercase tracking-[0.25em] text-[#fca5a5]">
-                          Acciones públicas propias
-                        </h3>
-
-                        <div className="mt-4 space-y-3">
-                          {ownPublicLogs.length === 0 ? (
-                            <p className="text-sm leading-6 text-[#b6a9a1]">
-                              Tu reino todavía no ha generado eventos públicos.
-                            </p>
-                          ) : (
-                            ownPublicLogs.slice(0, 10).map((log) => (
-                              <article
-                                key={log.id}
-                                className="border border-[#251014] bg-black/45 p-4"
-                              >
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                  <span
-                                    className={[
-                                      "border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em]",
-                                      actionBadge(log.type),
-                                    ].join(" ")}
-                                  >
-                                    {log.type}
-                                  </span>
-
-                                  <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-                                    Día {log.game_day}
-                                  </span>
-                                </div>
-
-                                <p className="mt-3 text-sm leading-6 text-[#d7c9bd]">
-                                  {log.message}
-                                </p>
-                              </article>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="border border-[#251014] bg-black/45">
-                    <div className="border-b border-[#251014] p-6">
-                      <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
-                        Balance del día
-                      </p>
-                      <h2 className="mt-3 text-3xl font-black uppercase text-[#fff8ef]">
-                        Día {currentDay}
-                      </h2>
-                    </div>
-
-                    <div className="grid gap-5 p-6 md:grid-cols-5">
-                      <article className="border border-[#251014] bg-black/45 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-                          Refuerzos
-                        </p>
-                        <p className="mt-3 text-3xl font-black text-[#fff8ef]">
-                          {todayReinforcements.length}
-                        </p>
-                      </article>
-
-                      <article className="border border-[#251014] bg-black/45 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-                          Ataques
-                        </p>
-                        <p className="mt-3 text-3xl font-black text-[#fff8ef]">
-                          {todayAttacks.length}
-                        </p>
-                      </article>
-
-                      <article className="border border-[#251014] bg-black/45 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-                          Exploraciones
-                        </p>
-                        <p className="mt-3 text-3xl font-black text-[#fff8ef]">
-                          {todayScouts.length}/1
-                        </p>
-                      </article>
-
-                      <article className="border border-[#251014] bg-black/45 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-                          Conquistas
-                        </p>
-                        <p className="mt-3 text-3xl font-black text-[#fff8ef]">
-                          {conqueredToday.length}
-                        </p>
-                      </article>
-
-                      <article className="border border-[#251014] bg-black/45 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-                          Movilizados
-                        </p>
-                        <p className="mt-3 text-3xl font-black text-[#fff8ef]">
-                          {formatSoldiers(todayMovedSoldiers)}
-                        </p>
-                      </article>
-                    </div>
-                  </section>
+                  <OrdersLogPanel
+                    playerActions={playerActions}
+                    ownPublicLogs={ownPublicLogs}
+                    territoryById={territoryById}
+                    currentDay={currentDay}
+                    todayReinforcements={todayReinforcements}
+                    todayAttacks={todayAttacks}
+                    todayScouts={todayScouts}
+                    conqueredToday={conqueredToday}
+                    todayMovedSoldiers={todayMovedSoldiers}
+                  />
                 </div>
 
                 <aside className="space-y-6">
