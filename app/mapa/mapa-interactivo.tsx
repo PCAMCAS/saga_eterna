@@ -763,13 +763,7 @@ export function MapaInteractivo({
                       action={reinforceAction}
                       className="border border-[#251014] bg-black/45 p-4"
                     >
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
-                        {selectedIsDisputeAttacker
-                          ? "Reforzar asedio"
-                          : "Reforzar territorio"}
-                      </p>
-
-                      <input
+                       <input
                         type="hidden"
                         name="targetTerritoryId"
                         value={selectedTerritory.id}
@@ -867,11 +861,7 @@ export function MapaInteractivo({
                         action={attackAction}
                         className="border border-[#251014] bg-black/45 p-4"
                       >
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
-                          Atacar territorio
-                        </p>
-
-                        <input
+                         <input
                           type="hidden"
                           name="targetTerritoryId"
                           value={selectedTerritory.id}
@@ -943,12 +933,19 @@ export function MapaInteractivo({
                         </button>
                       </form>
 
-                      <form action={raidAction} className="mt-4 border border-[#854d0e] bg-black/45 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#f59e0b]">
-                          Asaltar territorio
-                        </p>
+                      <div className="group mt-4 border border-[#854d0e] bg-black/45">
+                        <div className="border-b border-[#854d0e] bg-black/60 p-4 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:border-[#f59e0b] hover:bg-[#1a1005]">
+                          <span className="text-[#f59e0b]">Orden de saqueo</span>
+                          <span className="mt-2 block text-base tracking-[0.12em]">
+                            Asaltar territorio
+                          </span>
+                          <span className="mt-2 block text-[11px] font-normal normal-case tracking-normal text-[#b6a9a1]">
+                            Robar oro sin conquistar ni abrir disputa.
+                          </span>
+                        </div>
 
-                        <p className="mt-2 text-xs leading-5 text-[#b6a9a1]">
+                        <form action={raidAction} className="p-4">
+                         <p className="mt-2 text-xs leading-5 text-[#b6a9a1]">
                           Roba el oro almacenado si ganas. No conquista el
                           territorio y no puede abrir disputa.
                         </p>
@@ -1023,7 +1020,8 @@ export function MapaInteractivo({
                                 ? "Sin tropas disponibles"
                                 : "Enviar asalto"}
                         </button>
-                      </form>
+                        </form>
+                      </div>
                     </>
                   ) : (
                     <div className="border border-[#251014] bg-black/45 p-4 text-sm leading-6 text-[#b6a9a1]">
