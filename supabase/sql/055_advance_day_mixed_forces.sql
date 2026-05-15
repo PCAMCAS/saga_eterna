@@ -69,6 +69,7 @@ declare
   v_is_pvp boolean;
 
   v_economy_result jsonb;
+  v_raid_result jsonb;
 begin
   select id, current_day, current_year, current_tick
   into v_game_state_id, v_old_day, v_old_year, v_old_tick
@@ -692,6 +693,9 @@ begin
     );
   end loop;
 
+  -- 4. Resolver asaltos llegados.
+  v_raid_result := public.process_arrived_raids(v_new_day, v_new_year, v_new_tick);
+
   insert into public.global_logs (
     game_day,
     year,
@@ -721,6 +725,7 @@ begin
     'new_year', v_new_year,
     'new_tick', v_new_tick,
     'economy', v_economy_result,
+    'raids', v_raid_result,
     'resolved_reinforcements', v_resolved_reinforcements,
     'siege_reinforcements', v_siege_reinforcements,
     'resolved_attacks', v_resolved_attacks,

@@ -650,3 +650,64 @@ export async function trainSoldiers(
     message: result?.message ?? "No se pudo ordenar el entrenamiento.",
   };
 }
+
+export async function raidTerritory(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const fromTerritoryId = String(formData.get("fromTerritoryId") ?? "");
+  const targetTerritoryId = String(formData.get("targetTerritoryId") ?? "");
+
+  const amount = Number(formData.get("amount") ?? 0);
+  const soldiersAmount = Number(formData.get("soldiersAmount") ?? amount);
+  const mercenariesAmount = Number(formData.get("mercenariesAmount") ?? 0);
+
+  if (!fromTerritoryId || !targetTerritoryId) {
+    return {
+      ok: false,
+      message: "Debes seleccionar origen y objetivo.",
+    };
+  }
+
+  if (
+    (!Number.isFinite(soldiersAmount) || soldiersAmount < 0) ||
+    (!Number.isFinite(mercenariesAmount) || mercenariesAmount < 0) ||
+    Math.floor(soldiersAmount) + Math.floor(mercenariesAmount) <= 0
+  ) {
+    return {
+      ok: false,
+      message: "Debes enviar al menos 1 soldado o 1 mercenario.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("raid_territory_mixed_atomic", {
+    p_from_territory_id: fromTerritoryId,
+    p_target_territory_id: targetTerritoryId,
+    p_soldiers_amount: Math.floor(soldiersAmount),
+    p_mercenaries_amount: Math.floor(mercenariesAmount),
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+
+  const result = data as {
+    ok?: boolean;
+    message?: string;
+  } | null;
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/mapa");
+  revalidatePath("/admin");
+  revalidatePath("/registro-global");
+
+  return {
+    ok: Boolean(result?.ok),
+    message: result?.message ?? "No se pudo ordenar el asalto.",
+  };
+}
