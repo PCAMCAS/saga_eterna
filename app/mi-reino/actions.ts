@@ -555,14 +555,18 @@ export async function orderBuildingUpgrade(
   };
 }
 
-export async function orderBuildingUpgradeFromForm(formData: FormData) {
-  await orderBuildingUpgrade(
+export async function orderBuildingUpgradeFromForm(formData: FormData): Promise<void> {
+  const result = await orderBuildingUpgrade(
     {
       ok: false,
       message: "",
     },
     formData,
   );
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/mapa");
+  revalidatePath("/admin");
 }
 
 export async function buyMercenaries(

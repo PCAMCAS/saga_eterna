@@ -147,6 +147,7 @@ function BuildingUpgradeCard({
         <form action={action} className="mt-5">
           <input type="hidden" name="territoryId" value={territoryId} />
           <input type="hidden" name="buildingType" value={type} />
+          <input type="hidden" name="type" value={type} />
 
           <button
             type="submit"
