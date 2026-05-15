@@ -89,7 +89,7 @@ export function CommandCenterPanel({
             {formatNumber(troopMovements)}
           </p>
           <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
-            movimientos, refuerzos, ataques o asaltos pendientes de resolución.
+            movimientos militares, asaltos o transportes de recursos pendientes de resolución.
           </p>
 
           <a

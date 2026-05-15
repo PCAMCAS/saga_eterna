@@ -888,7 +888,7 @@ export default async function MiReinoPage({
                   />
                   <StatTile
                     label="En tránsito"
-                    value={troopMovements.length}
+                    value={troopMovements.length + resourceMovements.filter((movement) => movement.status === "IN_TRANSIT").length}
                     detail="Órdenes / tropas"
                     tone="blue"
                   />
@@ -905,7 +905,7 @@ export default async function MiReinoPage({
                     )
                     .map((territory) => territory.name)}
                   openDisputes={ownOpenDisputes.length}
-                  troopMovements={troopMovements.length}
+                  troopMovements={troopMovements.length + resourceMovements.filter((movement) => movement.status === "IN_TRANSIT").length}
                   totalGold={territoryEconomy.reduce(
                     (total, entry) => total + Number(entry.gold ?? 0),
                     0,
@@ -1266,7 +1266,7 @@ export default async function MiReinoPage({
                       )
                       .map((territory) => territory.name)}
                     openDisputes={ownOpenDisputes.length}
-                    troopMovements={troopMovements.length}
+                    troopMovements={troopMovements.length + resourceMovements.filter((movement) => movement.status === "IN_TRANSIT").length}
                     councilLines={councilLines}
                     leaveKingdom={leaveKingdom}
                     signOut={signOut}
