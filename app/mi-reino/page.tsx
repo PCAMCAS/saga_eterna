@@ -10,6 +10,7 @@ import { createClient } from "@/utils/supabase/server";
 import { leaveKingdom, selectKingdom, signOut } from "./actions";
 import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
+import { ArmyOverviewPanel } from "./army-overview-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
 import { ScoutReportsPanel } from "./scout-reports-panel";
 import { EconomyPanel } from "./economy-panel";
@@ -1004,6 +1005,8 @@ export default async function MiReinoPage({
                       </table>
                     </div>
                   </section>
+
+                  <ArmyOverviewPanel territories={ownedTerritories} />
 
                   <TroopMovementsPanel
                     movements={troopMovements}
