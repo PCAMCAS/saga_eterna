@@ -32,10 +32,17 @@ function formatNumber(value: number) {
 }
 
 function capacityForLevel(level: number) {
-  if (level === 1) return 10;
-  if (level === 2) return 25;
-  if (level === 3) return 50;
-  return 0;
+  const capacities = [10, 25, 50, 80, 120, 175, 250, 350, 500, 750];
+
+  if (level < 1 || level > 10) return 0;
+
+  return capacities[level - 1] ?? 0;
+}
+
+function unitCostForLevel(level: number) {
+  if (level >= 10) return 3;
+  if (level >= 7) return 4;
+  return 5;
 }
 
 export function SoldierTrainingPanel({
@@ -49,6 +56,7 @@ export function SoldierTrainingPanel({
   const [state, formAction, pending] = useActionState(trainSoldiers, initialState);
 
   const capacity = capacityForLevel(barracksLevel);
+  const unitCost = unitCostForLevel(barracksLevel);
   const canTrain = barracksLevel > 0 && !pendingOrder;
 
   return (
@@ -62,8 +70,8 @@ export function SoldierTrainingPanel({
             {capitalName}
           </h4>
           <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
-            Los soldados regulares cuestan 5 oro y estarán disponibles al inicio
-            del siguiente día.
+            Los soldados regulares estarán disponibles al inicio del siguiente
+            día. El coste depende del nivel del cuartel.
           </p>
         </div>
 
@@ -130,7 +138,7 @@ export function SoldierTrainingPanel({
 
       <p className="mt-3 text-xs leading-5 text-[#7f7470]">
         Oro disponible en esta capital: {formatNumber(gold)}. Coste total =
-        cantidad × 5.
+        cantidad × {unitCost}.
       </p>
 
       {state.message && (

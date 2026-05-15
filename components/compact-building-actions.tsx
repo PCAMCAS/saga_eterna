@@ -27,18 +27,39 @@ function label(type: BuildingType) {
 }
 
 function cost(type: BuildingType, nextLevel: number) {
+  const economyCosts = [
+    150,
+    300,
+    600,
+    1000,
+    1600,
+    2500,
+    3800,
+    5500,
+    8000,
+    12000,
+  ];
+
+  const barracksCosts = [
+    200,
+    400,
+    800,
+    1400,
+    2200,
+    3500,
+    5200,
+    7500,
+    11000,
+    16000,
+  ];
+
+  if (nextLevel < 1 || nextLevel > 10) return null;
+
   if (type === "BARRACKS") {
-    if (nextLevel === 1) return 200;
-    if (nextLevel === 2) return 400;
-    if (nextLevel === 3) return 800;
-    return null;
+    return barracksCosts[nextLevel - 1] ?? null;
   }
 
-  if (nextLevel === 1) return 150;
-  if (nextLevel === 2) return 300;
-  if (nextLevel === 3) return 600;
-
-  return null;
+  return economyCosts[nextLevel - 1] ?? null;
 }
 
 function CompactButton({
@@ -72,6 +93,7 @@ function UpgradeMiniForm({
   currentLevel,
   gold,
   pending,
+  maxLevel,
   action,
 }: {
   territoryId: string;
@@ -79,11 +101,12 @@ function UpgradeMiniForm({
   currentLevel: number;
   gold: number;
   pending: boolean;
+  maxLevel: number;
   action: (formData: FormData) => void | Promise<void>;
 }) {
   const nextLevel = currentLevel + 1;
   const upgradeCost = cost(type, nextLevel);
-  const maxed = currentLevel >= 3;
+  const maxed = currentLevel >= maxLevel;
   const disabled = maxed || pending || !upgradeCost || gold < upgradeCost;
 
   return (
@@ -147,6 +170,7 @@ export function CompactBuildingActions({
           currentLevel={goldBuildingLevel}
           gold={gold}
           pending={pendingBuildingTypes.includes("GOLD")}
+          maxLevel={isCapital ? 10 : 3}
           action={action}
         />
 
@@ -158,6 +182,7 @@ export function CompactBuildingActions({
               currentLevel={foodBuildingLevel}
               gold={gold}
               pending={pendingBuildingTypes.includes("FOOD")}
+              maxLevel={10}
               action={action}
             />
 
@@ -167,6 +192,7 @@ export function CompactBuildingActions({
               currentLevel={barracksLevel}
               gold={gold}
               pending={pendingBuildingTypes.includes("BARRACKS")}
+              maxLevel={10}
               action={action}
             />
           </>

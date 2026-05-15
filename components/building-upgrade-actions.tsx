@@ -41,18 +41,39 @@ function buildingDescription(type: BuildingType) {
 }
 
 function nextCost(type: BuildingType, nextLevel: number) {
+  const economyCosts = [
+    150,
+    300,
+    600,
+    1000,
+    1600,
+    2500,
+    3800,
+    5500,
+    8000,
+    12000,
+  ];
+
+  const barracksCosts = [
+    200,
+    400,
+    800,
+    1400,
+    2200,
+    3500,
+    5200,
+    7500,
+    11000,
+    16000,
+  ];
+
+  if (nextLevel < 1 || nextLevel > 10) return null;
+
   if (type === "BARRACKS") {
-    if (nextLevel === 1) return 200;
-    if (nextLevel === 2) return 400;
-    if (nextLevel === 3) return 800;
-    return null;
+    return barracksCosts[nextLevel - 1] ?? null;
   }
 
-  if (nextLevel === 1) return 150;
-  if (nextLevel === 2) return 300;
-  if (nextLevel === 3) return 600;
-
-  return null;
+  return economyCosts[nextLevel - 1] ?? null;
 }
 
 function SubmitButton({
@@ -86,6 +107,7 @@ function BuildingCard({
   currentLevel,
   gold,
   pending,
+  maxLevel,
   action,
 }: {
   territoryId: string;
@@ -93,11 +115,12 @@ function BuildingCard({
   currentLevel: number;
   gold: number;
   pending: boolean;
+  maxLevel: number;
   action: (formData: FormData) => void | Promise<void>;
 }) {
   const nextLevel = currentLevel + 1;
   const cost = nextCost(type, nextLevel);
-  const maxed = currentLevel >= 3;
+  const maxed = currentLevel >= maxLevel;
   const disabled = maxed || pending || !cost || gold < cost;
 
   return (
@@ -239,6 +262,7 @@ export function BuildingUpgradeActions({
           currentLevel={goldBuildingLevel}
           gold={gold}
           pending={pendingBuildingTypes.includes("GOLD")}
+          maxLevel={isCapital ? 10 : 3}
           action={action}
         />
 
@@ -250,6 +274,7 @@ export function BuildingUpgradeActions({
               currentLevel={foodBuildingLevel}
               gold={gold}
               pending={pendingBuildingTypes.includes("FOOD")}
+              maxLevel={10}
               action={action}
             />
 
@@ -259,6 +284,7 @@ export function BuildingUpgradeActions({
               currentLevel={barracksLevel}
               gold={gold}
               pending={pendingBuildingTypes.includes("BARRACKS")}
+              maxLevel={10}
               action={action}
             />
           </>
