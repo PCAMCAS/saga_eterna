@@ -133,6 +133,16 @@ type PrivateLog = {
   created_at: string | null;
 };
 
+type SoldierTrainingOrder = {
+  id: string;
+  territory_id: string;
+  soldiers: number;
+  cost_gold: number;
+  completes_day: number;
+  completes_year: number;
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
+};
+
 function formatSoldiers(value: number) {
   return value.toLocaleString("es-ES");
 }
@@ -179,6 +189,7 @@ export default async function MiReinoPage({
   let territoryEconomy: TerritoryEconomy[] = [];
   let buildingOrders: BuildingOrder[] = [];
   let privateLogs: PrivateLog[] = [];
+  let soldierTrainingOrders: SoldierTrainingOrder[] = [];
   let occupiedKingdomIds = new Set<string>();
 
   let adjacentTerritories: {
@@ -243,6 +254,7 @@ export default async function MiReinoPage({
       { data: territoryEconomyData },
       { data: buildingOrderData },
       { data: privateLogData },
+      { data: soldierTrainingOrderData },
     ] = await Promise.all([
       supabase.from("kingdoms").select("*").order("name"),
       supabase.from("profiles").select("kingdom_id").not("kingdom_id", "is", null),
@@ -310,6 +322,11 @@ export default async function MiReinoPage({
         .select("id, game_day, year, type, message, created_at")
         .order("created_at", { ascending: false })
         .limit(20),
+      supabase
+        .from("soldier_training_orders")
+        .select("id, territory_id, soldiers, cost_gold, completes_day, completes_year, status")
+        .eq("status", "PENDING")
+        .order("completes_tick", { ascending: true }),
     ]);
 
     kingdoms = (kingdomData ?? []) as Kingdom[];
@@ -329,6 +346,7 @@ export default async function MiReinoPage({
     territoryEconomy = (territoryEconomyData ?? []) as TerritoryEconomy[];
     buildingOrders = (buildingOrderData ?? []) as BuildingOrder[];
     privateLogs = (privateLogData ?? []) as PrivateLog[];
+    soldierTrainingOrders = (soldierTrainingOrderData ?? []) as SoldierTrainingOrder[];
 
     if (gameStateData) {
       currentDay = Number(gameStateData.current_day);
@@ -887,6 +905,7 @@ export default async function MiReinoPage({
                     territories={ownedTerritories}
                     economy={territoryEconomy}
                     buildingOrders={buildingOrders}
+                    soldierTrainingOrders={soldierTrainingOrders}
                   />
 
                   <PrivateLogsPanel logs={privateLogs} />

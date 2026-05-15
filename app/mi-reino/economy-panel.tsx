@@ -3,13 +3,15 @@
 import { BuildingUpgradeActions } from "@/components/building-upgrade-actions";
 import { orderBuildingUpgradeFromForm } from "./actions";
 import { MercenaryPurchasePanel } from "./mercenary-purchase-panel";
+import { SoldierTrainingPanel } from "./soldier-training-panel";
 
 type Territory = {
   id: string;
   name: string;
   type: "CAPITAL" | "CITY" | "STATION";
   is_disputed?: boolean;
-  mercenaries?: number;
+  soldiers?: number | null;
+  mercenaries?: number | null;
 };
 
 type TerritoryEconomy = {
@@ -32,10 +34,21 @@ type BuildingOrder = {
   status: "PENDING" | "COMPLETED" | "CANCELLED";
 };
 
+type SoldierTrainingOrder = {
+  id: string;
+  territory_id: string;
+  soldiers: number;
+  cost_gold: number;
+  completes_day: number;
+  completes_year: number;
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
+};
+
 type EconomyPanelProps = {
   territories: Territory[];
   economy: TerritoryEconomy[];
   buildingOrders: BuildingOrder[];
+  soldierTrainingOrders: SoldierTrainingOrder[];
 };
 
 function formatNumber(value: number) {
@@ -60,6 +73,7 @@ export function EconomyPanel({
   territories,
   economy,
   buildingOrders,
+  soldierTrainingOrders,
 }: EconomyPanelProps) {
   const economicTerritories = territories.filter(
     (territory) => territory.type !== "STATION",
@@ -180,13 +194,30 @@ export function EconomyPanel({
                 />
 
                 {territory.type === "CAPITAL" && (
-                  <MercenaryPurchasePanel
-                    capitalId={territory.id}
-                    capitalName={territory.name}
-                    gold={Number(entry?.gold ?? 0)}
-                    mercenaries={Number(territory.mercenaries ?? 0)}
-                    isDisputed={Boolean(territory.is_disputed)}
-                  />
+                  <>
+                    <MercenaryPurchasePanel
+                      capitalId={territory.id}
+                      capitalName={territory.name}
+                      gold={Number(entry?.gold ?? 0)}
+                      mercenaries={Number(territory.mercenaries ?? 0)}
+                      isDisputed={Boolean(territory.is_disputed)}
+                    />
+
+                    <SoldierTrainingPanel
+                      capitalId={territory.id}
+                      capitalName={territory.name}
+                      gold={Number(entry?.gold ?? 0)}
+                      soldiers={Number(territory.soldiers ?? 0)}
+                      barracksLevel={Number(entry?.barracks_level ?? 0)}
+                      pendingOrder={
+                        soldierTrainingOrders.find(
+                          (order) =>
+                            order.territory_id === territory.id &&
+                            order.status === "PENDING",
+                        ) ?? null
+                      }
+                    />
+                  </>
                 )}
               </div>
             );
