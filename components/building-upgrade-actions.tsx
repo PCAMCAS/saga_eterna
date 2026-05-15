@@ -1,7 +1,3 @@
-"use client";
-
-import { useFormStatus } from "react-dom";
-
 type BuildingType = "GOLD" | "FOOD" | "BARRACKS";
 
 type BuildingUpgradeActionsProps = {
@@ -17,6 +13,10 @@ type BuildingUpgradeActionsProps = {
   pendingBuildingTypes?: BuildingType[];
   action: (formData: FormData) => void | Promise<void>;
 };
+
+const goldIncomeByLevel = [0, 25, 50, 100, 150, 225, 325, 450, 600, 800, 1000];
+const foodIncomeByLevel = [0, 25, 75, 150, 250, 400, 600, 850, 1150, 1500, 2000];
+const barracksCapacityByLevel = [0, 10, 25, 50, 80, 120, 175, 250, 350, 500, 750];
 
 function formatNumber(value: number) {
   return Number(value ?? 0).toLocaleString("es-ES");
@@ -40,179 +40,133 @@ function buildingDescription(type: BuildingType) {
   return "Permite entrenar soldados regulares desde la capital.";
 }
 
-function buildingBenefit(type: BuildingType, level: number) {
-  if (level <= 0) {
-    if (type === "GOLD") return "+0 oro/día";
-    if (type === "FOOD") return "+0 comida/día";
-    return "Sin entrenamiento";
-  }
+function currentValue(type: BuildingType, level: number) {
+  if (type === "GOLD") return `+${formatNumber(goldIncomeByLevel[level] ?? 0)} oro/día`;
+  if (type === "FOOD") return `+${formatNumber(foodIncomeByLevel[level] ?? 0)} comida/día`;
 
-  const goldIncome = [25, 50, 100, 150, 225, 325, 450, 600, 800, 1000];
-  const foodIncome = [25, 75, 150, 250, 400, 600, 850, 1150, 1500, 2000];
-  const barracksCapacity = [10, 25, 50, 80, 120, 175, 250, 350, 500, 750];
-
-  if (type === "GOLD") {
-    return `+${goldIncome[level - 1] ?? 0} oro/día`;
-  }
-
-  if (type === "FOOD") {
-    return `+${foodIncome[level - 1] ?? 0} comida/día`;
-  }
-
-  const unitCost = level >= 10 ? 3 : level >= 7 ? 4 : 5;
-
-  return `${barracksCapacity[level - 1] ?? 0} soldados/día · ${unitCost} oro/soldado`;
+  const capacity = barracksCapacityByLevel[level] ?? 0;
+  return capacity <= 0 ? "Sin entrenamiento" : `${formatNumber(capacity)} soldados/día`;
 }
 
-function nextCost(type: BuildingType, nextLevel: number) {
-  const economyCosts = [
-    150,
-    300,
-    600,
-    1000,
-    1600,
-    2500,
-    3800,
-    5500,
-    8000,
-    12000,
-  ];
-
-  const barracksCosts = [
-    200,
-    400,
-    800,
-    1400,
-    2200,
-    3500,
-    5200,
-    7500,
-    11000,
-    16000,
-  ];
-
-  if (nextLevel < 1 || nextLevel > 10) return null;
-
-  if (type === "BARRACKS") {
-    return barracksCosts[nextLevel - 1] ?? null;
-  }
-
-  return economyCosts[nextLevel - 1] ?? null;
+function upgradeCost(type: BuildingType, nextLevel: number) {
+  const base = type === "BARRACKS" ? 200 : 150;
+  return base * Math.max(1, nextLevel);
 }
 
-function SubmitButton({
-  disabled,
-  cost,
-}: {
-  disabled: boolean;
-  cost: number;
-}) {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={disabled || pending}
-      className={[
-        "mt-4 w-full border px-4 py-3 text-xs font-black uppercase tracking-[0.22em] transition",
-        disabled || pending
-          ? "cursor-not-allowed border-[#251014] bg-black/50 text-[#6f625c]"
-          : "border-[#c3222b] bg-black/70 text-[#fff8ef] hover:bg-[#991b1b]",
-      ].join(" ")}
-    >
-      {pending ? "Ordenando..." : `Mejorar · ${formatNumber(cost)} oro`}
-    </button>
-  );
-}
-
-function BuildingCard({
+function BuildingUpgradeCard({
   territoryId,
   type,
   currentLevel,
+  maxLevel,
   gold,
   pending,
-  maxLevel,
   action,
 }: {
   territoryId: string;
   type: BuildingType;
   currentLevel: number;
+  maxLevel: number;
   gold: number;
   pending: boolean;
-  maxLevel: number;
   action: (formData: FormData) => void | Promise<void>;
 }) {
   const nextLevel = currentLevel + 1;
-  const cost = nextCost(type, nextLevel);
   const maxed = currentLevel >= maxLevel;
-  const disabled = maxed || pending || !cost || gold < cost;
+  const cost = upgradeCost(type, nextLevel);
+  const canPay = gold >= cost;
+  const disabled = maxed || pending || !canPay;
 
   return (
-    <article className="group relative overflow-hidden border border-[#3a0c12] bg-black/50 p-4 transition hover:border-[#7f1d1d]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(195,34,43,0.13),transparent_42%)] opacity-0 transition group-hover:opacity-100" />
-
-      <div className="relative z-10">
-        <div className="flex items-start justify-between gap-3">
+    <article className="grid gap-5 border border-[#251014] bg-black/45 p-5 xl:grid-cols-[minmax(0,1fr)_220px]">
+      <div>
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#d83a3a]">
               {buildingLabel(type)}
             </p>
-            <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#b6a9a1]">
               {buildingDescription(type)}
             </p>
           </div>
 
           {pending && (
-            <span className="shrink-0 border border-[#854d0e] bg-[#1a1005] px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#fde68a]">
-              En cola
+            <span className="border border-[#854d0e] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#fde68a]">
+              En construcción
+            </span>
+          )}
+
+          {maxed && (
+            <span className="border border-[#3f6212] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#bef264]">
+              Nivel máximo
             </span>
           )}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="border border-[#251014] bg-black/45 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#7f7470]">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="border border-[#251014] bg-black/50 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#7f7470]">
               Actual
             </p>
-            <p className="mt-1 text-2xl font-black text-[#fff8ef]">
+            <p className="mt-2 text-2xl font-black text-[#fff8ef]">
               Nivel {currentLevel}
             </p>
-            <p className="mt-2 text-xs leading-5 text-[#b6a9a1]">
-              {buildingBenefit(type, currentLevel)}
+            <p className="mt-2 text-sm leading-5 text-[#b6a9a1]">
+              {currentValue(type, currentLevel)}
             </p>
           </div>
 
-          <div className="border border-[#251014] bg-black/45 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#7f7470]">
+          <div className="border border-[#3a0c12] bg-black/50 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#7f7470]">
               Siguiente
             </p>
-            <p className="mt-1 text-2xl font-black text-[#fff8ef]">
-              {maxed ? "Máx." : `Nivel ${nextLevel}`}
+            <p className="mt-2 text-2xl font-black text-[#fff8ef]">
+              {maxed ? "Completo" : `Nivel ${nextLevel}`}
             </p>
-            <p className="mt-2 text-xs leading-5 text-[#b6a9a1]">
-              {maxed ? "Nivel máximo alcanzado" : buildingBenefit(type, nextLevel)}
+            <p className="mt-2 text-sm leading-5 text-[#b6a9a1]">
+              {maxed ? "No hay más mejoras disponibles." : currentValue(type, nextLevel)}
             </p>
           </div>
         </div>
+      </div>
 
-        {maxed ? (
-          <div className="mt-4 border border-[#251014] bg-black/45 p-3 text-xs font-black uppercase tracking-[0.2em] text-[#7f7470]">
-            Nivel máximo alcanzado
-          </div>
-        ) : (
-          <form action={action}>
-            <input type="hidden" name="territoryId" value={territoryId} />
-            <input type="hidden" name="buildingType" value={type} />
+      <div className="flex flex-col justify-between border border-[#251014] bg-black/55 p-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
+            Coste
+          </p>
+          <p className="mt-2 text-3xl font-black text-[#f7c873]">
+            {maxed ? "—" : formatNumber(cost)}
+          </p>
+          {!maxed && (
+            <p className="mt-1 text-xs text-[#7f7470]">
+              oro requerido
+            </p>
+          )}
+        </div>
 
-            <SubmitButton disabled={disabled} cost={cost ?? 0} />
+        <form action={action} className="mt-5">
+          <input type="hidden" name="territoryId" value={territoryId} />
+          <input type="hidden" name="buildingType" value={type} />
 
-            {cost && gold < cost && (
-              <p className="mt-3 text-xs leading-5 text-[#fca5a5]">
-                Oro insuficiente en este territorio. Necesitas{" "}
-                {formatNumber(cost)} oro.
-              </p>
-            )}
-          </form>
+          <button
+            type="submit"
+            disabled={disabled}
+            className="w-full border border-[#c3222b] bg-black/70 px-4 py-3 text-xs font-black uppercase tracking-[0.22em] text-[#fff8ef] transition hover:bg-[#991b1b] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {maxed
+              ? "Completado"
+              : pending
+                ? "Pendiente"
+                : !canPay
+                  ? "Oro insuficiente"
+                  : "Mejorar"}
+          </button>
+        </form>
+
+        {!maxed && !pending && !canPay && (
+          <p className="mt-3 text-xs leading-5 text-[#fca5a5]">
+            Necesitas {formatNumber(cost)} oro en este territorio.
+          </p>
         )}
       </div>
     </article>
@@ -225,29 +179,32 @@ export function BuildingUpgradeActions({
   territoryType,
   isDisputed = false,
   gold,
-  food,
   goldBuildingLevel,
   foodBuildingLevel,
   barracksLevel,
   pendingBuildingTypes = [],
   action,
 }: BuildingUpgradeActionsProps) {
-  const isCapital = territoryType === "CAPITAL";
-
   if (territoryType === "STATION") {
     return null;
   }
 
-  return (
-    <section className="border border-[#251014] bg-black/45">
-      <div className="border-b border-[#251014] p-5">
-        <p className="text-xs font-black uppercase tracking-[0.35em] text-[#d83a3a]">
-          Gestión económica
-        </p>
+  const isCapital = territoryType === "CAPITAL";
+  const maxLevel = isCapital ? 10 : 3;
 
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+  const availableBuildings: BuildingType[] = isCapital
+    ? ["GOLD", "FOOD", "BARRACKS"]
+    : ["GOLD"];
+
+  return (
+    <section className="border border-[#251014] bg-black/35">
+      <div className="border-b border-[#251014] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h3 className="text-2xl font-black text-[#fff8ef]">
+            <p className="text-[10px] font-black uppercase tracking-[0.32em] text-[#d83a3a]">
+              Gestión económica
+            </p>
+            <h3 className="mt-2 text-2xl font-black uppercase text-[#fff8ef]">
               {territoryName}
             </h3>
             <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
@@ -257,68 +214,41 @@ export function BuildingUpgradeActions({
             </p>
           </div>
 
-          {isDisputed && (
-            <span className="border border-[#7f1d1d] bg-black/60 px-3 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#fca5a5]">
-              En disputa
+          <div className="flex flex-wrap gap-2">
+            <span className="border border-[#854d0e] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#f7c873]">
+              Oro: {formatNumber(gold)}
             </span>
-          )}
+            <span className="border border-[#251014] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#d7c9bd]">
+              Máx. nivel {maxLevel}
+            </span>
+            {isDisputed && (
+              <span className="border border-[#7f1d1d] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#fca5a5]">
+                En disputa
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-4 border-b border-[#251014] p-5 md:grid-cols-2">
-        <div className="border border-[#3a0c12] bg-black/50 p-4 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-            Oro almacenado
-          </p>
-          <p className="mt-2 text-3xl font-black text-[#fff8ef]">
-            {formatNumber(gold)}
-          </p>
-        </div>
-
-        <div className="border border-[#3a0c12] bg-black/50 p-4 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#d83a3a]">
-            Comida almacenada
-          </p>
-          <p className="mt-2 text-3xl font-black text-[#fff8ef]">
-            {formatNumber(food)}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 p-5 xl:grid-cols-3">
-        <BuildingCard
-          territoryId={territoryId}
-          type="GOLD"
-          currentLevel={goldBuildingLevel}
-          gold={gold}
-          pending={pendingBuildingTypes.includes("GOLD")}
-          maxLevel={isCapital ? 10 : 3}
-          action={action}
-        />
-
-        {isCapital && (
-          <>
-            <BuildingCard
-              territoryId={territoryId}
-              type="FOOD"
-              currentLevel={foodBuildingLevel}
-              gold={gold}
-              pending={pendingBuildingTypes.includes("FOOD")}
-              maxLevel={10}
-              action={action}
-            />
-
-            <BuildingCard
-              territoryId={territoryId}
-              type="BARRACKS"
-              currentLevel={barracksLevel}
-              gold={gold}
-              pending={pendingBuildingTypes.includes("BARRACKS")}
-              maxLevel={10}
-              action={action}
-            />
-          </>
-        )}
+      <div className="grid gap-4 p-5">
+        {availableBuildings.map((type) => (
+          <BuildingUpgradeCard
+            key={type}
+            territoryId={territoryId}
+            type={type}
+            currentLevel={
+              type === "GOLD"
+                ? goldBuildingLevel
+                : type === "FOOD"
+                  ? foodBuildingLevel
+                  : barracksLevel
+            }
+            maxLevel={maxLevel}
+            gold={gold}
+            pending={pendingBuildingTypes.includes(type)}
+            action={action}
+          />
+        ))}
       </div>
     </section>
   );

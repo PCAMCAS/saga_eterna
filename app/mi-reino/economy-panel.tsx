@@ -189,7 +189,7 @@ function CityEconomyCard({
         </p>
       </div>
 
-      <div className="grid gap-4 p-5 sm:grid-cols-3">
+      <div className="grid gap-4 p-5 md:grid-cols-3">
         <ResourceBox
           label="Oro"
           value={entry.gold}
@@ -431,7 +431,7 @@ export function EconomyPanel({
       </div>
 
       {cities.length > 0 && (
-        <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-6">
           {cities.map((territory) => {
             const entry = getEconomyEntry(territory.id, economy);
             const pendingBuildingTypes = pendingTypesForTerritory(
