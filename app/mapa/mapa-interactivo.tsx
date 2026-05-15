@@ -140,6 +140,10 @@ export function MapaInteractivo({
     null,
   );
 
+  const [selectedOrder, setSelectedOrder] = useState<
+    "SCOUT" | "REINFORCE" | "ATTACK" | "RAID" | null
+  >(null);
+
   const [scoutState, scoutAction, scoutPending] = useActionState(
     scoutTerritory,
     initialActionState,
@@ -739,6 +743,107 @@ export function MapaInteractivo({
                 </div>
 
                 <div className="space-y-4 p-5">
+                  {(selectedIsOwned || selectedIsDisputeAttacker || (selectedIsEnemy && !selectedDispute)) && (
+                    <div className="border border-[#251014] bg-black/45 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#d83a3a]">
+                        Órdenes disponibles
+                      </p>
+
+                      <p className="mt-2 text-sm leading-6 text-[#b6a9a1]">
+                        Selecciona una orden. Solo se abrirá el formulario de la acción elegida.
+                      </p>
+
+                      <div className="mt-4 grid gap-2">
+                        {canReinforceSelected && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedOrder(
+                                selectedOrder === "REINFORCE" ? null : "REINFORCE",
+                              )
+                            }
+                            className={[
+                              "w-full border px-4 py-3 text-left text-xs font-black uppercase tracking-[0.22em] transition",
+                              selectedOrder === "REINFORCE"
+                                ? "border-[#c3222b] bg-[#7f1d1d] text-[#fff8ef]"
+                                : "border-[#3a0c12] bg-black/70 text-[#d7c9bd] hover:border-[#c3222b] hover:text-[#fff8ef]",
+                            ].join(" ")}
+                          >
+                            Reforzar
+                            <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-[#b6a9a1]">
+                              Enviar tropas propias o apoyar un asedio.
+                            </span>
+                          </button>
+                        )}
+
+                        {selectedIsEnemy && !selectedDispute && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedOrder(
+                                  selectedOrder === "SCOUT" ? null : "SCOUT",
+                                )
+                              }
+                              disabled={!canUseScout}
+                              className={[
+                                "w-full border px-4 py-3 text-left text-xs font-black uppercase tracking-[0.22em] transition disabled:cursor-not-allowed disabled:opacity-45",
+                                selectedOrder === "SCOUT"
+                                  ? "border-[#c3222b] bg-[#7f1d1d] text-[#fff8ef]"
+                                  : "border-[#3a0c12] bg-black/70 text-[#d7c9bd] hover:border-[#c3222b] hover:text-[#fff8ef]",
+                              ].join(" ")}
+                            >
+                              Investigar
+                              <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-[#b6a9a1]">
+                                Ver tropas enemigas una vez por día.
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedOrder(
+                                  selectedOrder === "ATTACK" ? null : "ATTACK",
+                                )
+                              }
+                              className={[
+                                "w-full border px-4 py-3 text-left text-xs font-black uppercase tracking-[0.22em] transition",
+                                selectedOrder === "ATTACK"
+                                  ? "border-[#c3222b] bg-[#7f1d1d] text-[#fff8ef]"
+                                  : "border-[#3a0c12] bg-black/70 text-[#d7c9bd] hover:border-[#c3222b] hover:text-[#fff8ef]",
+                              ].join(" ")}
+                            >
+                              Atacar
+                              <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-[#b6a9a1]">
+                                Intentar conquistar. Puede acabar en disputa.
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedOrder(
+                                  selectedOrder === "RAID" ? null : "RAID",
+                                )
+                              }
+                              className={[
+                                "w-full border px-4 py-3 text-left text-xs font-black uppercase tracking-[0.22em] transition",
+                                selectedOrder === "RAID"
+                                  ? "border-[#f59e0b] bg-[#78350f] text-[#fff8ef]"
+                                  : "border-[#854d0e] bg-black/70 text-[#d7c9bd] hover:border-[#f59e0b] hover:text-[#fff8ef]",
+                              ].join(" ")}
+                            >
+                              Asaltar
+                              <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-[#b6a9a1]">
+                                Robar oro sin conquistar ni abrir disputa.
+                              </span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {!userEmail ? (
                     <Link
                       href="/login"
@@ -761,7 +866,10 @@ export function MapaInteractivo({
                     <form
                       key={`reinforce-${selectedTerritory.id}-${selectedTerritory.soldiers ?? "hidden"}-${reinforceState.message}`}
                       action={reinforceAction}
-                      className="border border-[#251014] bg-black/45 p-4"
+                      className={[
+                        selectedOrder === "REINFORCE" ? "block" : "hidden",
+                        "border border-[#251014] bg-black/45 p-4",
+                      ].join(" ")}
                     >
                        <input
                         type="hidden"
@@ -836,7 +944,11 @@ export function MapaInteractivo({
                     </form>
                   ) : selectedIsEnemy && !selectedDispute ? (
                     <>
-                      <form key={`scout-${selectedTerritory.id}-${scoutState.message}`} action={scoutAction}>
+                      <form
+                        key={`scout-${selectedTerritory.id}-${scoutState.message}`}
+                        action={scoutAction}
+                        className={selectedOrder === "SCOUT" ? "block" : "hidden"}
+                      >
                         <input
                           type="hidden"
                           name="targetTerritoryId"
@@ -859,7 +971,10 @@ export function MapaInteractivo({
                       <form
                         key={`attack-${selectedTerritory.id}-${attackState.message}`}
                         action={attackAction}
-                        className="border border-[#251014] bg-black/45 p-4"
+                        className={[
+                          selectedOrder === "ATTACK" ? "block" : "hidden",
+                          "border border-[#251014] bg-black/45 p-4",
+                        ].join(" ")}
                       >
                          <input
                           type="hidden"
@@ -933,7 +1048,12 @@ export function MapaInteractivo({
                         </button>
                       </form>
 
-                      <div className="group mt-4 border border-[#854d0e] bg-black/45">
+                      <div
+                        className={[
+                          selectedOrder === "RAID" ? "block" : "hidden",
+                          "mt-4 border border-[#854d0e] bg-black/45",
+                        ].join(" ")}
+                      >
                         <div className="border-b border-[#854d0e] bg-black/60 p-4 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:border-[#f59e0b] hover:bg-[#1a1005]">
                           <span className="text-[#f59e0b]">Orden de saqueo</span>
                           <span className="mt-2 block text-base tracking-[0.12em]">
