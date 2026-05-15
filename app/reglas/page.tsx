@@ -20,18 +20,50 @@ const sections = [
     ],
   },
   {
-    title: "Reclutamiento y logística",
+    title: "Economía diaria",
     items: [
-      "Cada día, las capitales generan aleatoriamente entre 100 y 200 soldados.",
-      "Las ciudades no generan tropas por sí mismas.",
-      "Cada capital intenta enviar automáticamente 5 soldados a cada ciudad de su reino.",
-      "Los refuerzos automáticos viajan y llegan al día siguiente.",
+      "Las capitales producen 100 oro al día.",
+      "El oro se almacena en el territorio que lo produce.",
+      "Las ciudades solo producen oro si tienen un edificio económico.",
+      "La comida se produce en capitales mediante edificios de producción de comida.",
+      "Los edificios se ordenan durante el día y se completan al inicio del siguiente día.",
+    ],
+  },
+  {
+    title: "Edificios",
+    items: [
+      "El edificio de oro aumenta la producción diaria de oro del territorio.",
+      "El edificio de comida solo puede construirse en capitales.",
+      "El cuartel solo puede construirse en capitales.",
+      "Las ciudades solo pueden construir edificios de oro.",
+      "Si un territorio es conquistado, sus edificios quedan destruidos y se resetean a nivel 0.",
+    ],
+  },
+  {
+    title: "Soldados regulares",
+    items: [
+      "Los soldados regulares se entrenan en capitales con cuartel.",
+      "Cada soldado regular cuesta 5 oro al entrenarse.",
+      "El entrenamiento se completa al inicio del siguiente día.",
+      "Cada soldado regular consume 1 comida al día.",
+      "Si no hay comida suficiente, los soldados sin suministros se pierden.",
+    ],
+  },
+  {
+    title: "Mercenarios",
+    items: [
+      "Los mercenarios se compran en capitales.",
+      "Cada mercenario cuesta 10 oro y aparece inmediatamente.",
+      "Si la capital está en disputa, cada mercenario cuesta 20 oro.",
+      "Cada mercenario cuesta 1 oro de mantenimiento diario.",
+      "Si no se puede pagar el mantenimiento, los mercenarios impagados abandonan el ejército.",
     ],
   },
   {
     title: "Refuerzos manuales",
     items: [
       "Puedes enviar tropas desde un territorio propio hacia otro territorio propio conectado.",
+      "Puedes mover soldados regulares, mercenarios o ambos a la vez.",
       "Las tropas salen inmediatamente del origen.",
       "El destino no recibe las tropas hasta que se complete el viaje.",
       "También puedes reforzar un asedio si tu reino participa como atacante.",
@@ -41,11 +73,13 @@ const sections = [
     title: "Ataques",
     items: [
       "Puedes atacar territorios enemigos conectados desde un territorio propio.",
+      "Puedes enviar soldados regulares, mercenarios o ambos.",
       "Las tropas atacantes salen inmediatamente del origen.",
       "La batalla se resuelve cuando el ejército llega.",
-      "Si varios ejércitos atacan el mismo territorio, se compara la fuerza de todos los bandos.",
-      "El bando con más soldados gana. En caso de empate en primer puesto, el defensor resiste.",
-      "Si un territorio es conquistado, queda con 0 soldados.",
+      "La fuerza total de un ejército es soldados regulares + mercenarios.",
+      "Si varios ejércitos atacan el mismo territorio, se compara la fuerza total de todos los bandos.",
+      "El bando con más fuerza gana. En caso de empate en primer puesto, el defensor resiste.",
+      "Si un territorio es conquistado, queda con 0 soldados y 0 mercenarios.",
     ],
   },
   {
