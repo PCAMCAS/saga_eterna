@@ -11,6 +11,7 @@ import { leaveKingdom, selectKingdom, signOut } from "./actions";
 import { DailyActionsPanel } from "./daily-actions-panel";
 import { TroopMovementsPanel } from "./troop-movements-panel";
 import { ArmyOverviewPanel } from "./army-overview-panel";
+import { CommandCenterPanel } from "./command-center-panel";
 import { PlayerDisputesPanel } from "./player-disputes-panel";
 import { ScoutReportsPanel } from "./scout-reports-panel";
 import { EconomyPanel } from "./economy-panel";
@@ -636,6 +637,43 @@ export default async function MiReinoPage({
     }
   }
 
+  const goldIncomeByLevelForDashboard = [
+    0, 25, 50, 100, 150, 225, 325, 450, 600, 800, 1000,
+  ];
+
+  const foodIncomeByLevelForDashboard = [
+    0, 25, 75, 150, 250, 400, 600, 850, 1150, 1500, 2000,
+  ];
+
+  const totalDailyGold = ownedTerritories.reduce((total, territory) => {
+    const entry = territoryEconomy.find(
+      (economyEntry) => economyEntry.territory_id === territory.id,
+    );
+
+    if (!entry) return total;
+
+    const buildingIncome =
+      goldIncomeByLevelForDashboard[Number(entry.gold_building_level ?? 0)] ?? 0;
+
+    return (
+      total +
+      (territory.type === "CAPITAL" ? 100 + buildingIncome : buildingIncome)
+    );
+  }, 0);
+
+  const totalDailyFood = ownedTerritories.reduce((total, territory) => {
+    const entry = territoryEconomy.find(
+      (economyEntry) => economyEntry.territory_id === territory.id,
+    );
+
+    if (!entry || territory.type !== "CAPITAL") return total;
+
+    return (
+      total +
+      (foodIncomeByLevelForDashboard[Number(entry.food_building_level ?? 0)] ?? 0)
+    );
+  }, 0);
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#050203] text-[#f3eee8]">
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_18%_82%,rgba(244,214,170,0.10),transparent_17%),radial-gradient(circle_at_48%_18%,rgba(125,18,31,0.36),transparent_34%),radial-gradient(circle_at_82%_70%,rgba(60,7,14,0.44),transparent_26%),linear-gradient(135deg,#040102_0%,#160509_45%,#050203_100%)]" />
@@ -829,6 +867,30 @@ export default async function MiReinoPage({
                     tone="blue"
                   />
                 </section>
+
+                <CommandCenterPanel
+                  vulnerableTerritories={ownedTerritories
+                    .filter(
+                      (territory) =>
+                        territory.type !== "STATION" &&
+                        Number(territory.soldiers ?? 0) +
+                          Number(territory.mercenaries ?? 0) <=
+                          0,
+                    )
+                    .map((territory) => territory.name)}
+                  openDisputes={ownOpenDisputes.length}
+                  troopMovements={troopMovements.length}
+                  totalGold={territoryEconomy.reduce(
+                    (total, entry) => total + Number(entry.gold ?? 0),
+                    0,
+                  )}
+                  totalFood={territoryEconomy.reduce(
+                    (total, entry) => total + Number(entry.food ?? 0),
+                    0,
+                  )}
+                  dailyGold={totalDailyGold}
+                  dailyFood={totalDailyFood}
+                />
 
                 <SectionTabs />
 
