@@ -10,6 +10,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import {
   ActionState,
   attackTerritory,
+  raidTerritory,
   reinforceTerritory,
   scoutTerritory,
 } from "@/app/mi-reino/actions";
@@ -154,14 +155,20 @@ export function MapaInteractivo({
     initialActionState,
   );
 
+  const [raidState, raidAction, raidPending] = useActionState(
+    raidTerritory,
+    initialActionState,
+  );
+
   useEffect(() => {
-    if (scoutState.ok || reinforceState.ok || attackState.ok) {
+    if (scoutState.ok || reinforceState.ok || attackState.ok || raidState.ok || raidState.ok) {
       router.refresh();
     }
   }, [
     scoutState.ok,
     reinforceState.ok,
     attackState.ok,
+    raidState.ok,
     scoutState.message,
     reinforceState.message,
     attackState.message,
@@ -931,8 +938,90 @@ export function MapaInteractivo({
                             : !hasAttackOrigins
                               ? "Sin origen conectado"
                               : !hasAvailableAttackSoldiers
-                                ? "Sin soldados disponibles"
+                                ? "Sin tropas disponibles"
                                 : "Lanzar ataque"}
+                        </button>
+                      </form>
+
+                      <form action={raidAction} className="mt-4 border border-[#854d0e] bg-black/45 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#f59e0b]">
+                          Asaltar territorio
+                        </p>
+
+                        <p className="mt-2 text-xs leading-5 text-[#b6a9a1]">
+                          Roba el oro almacenado si ganas. No conquista el
+                          territorio y no puede abrir disputa.
+                        </p>
+
+                        <input
+                          type="hidden"
+                          name="targetTerritoryId"
+                          value={selectedTerritory.id}
+                        />
+
+                        <label className="mt-4 block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                          Origen
+                        </label>
+                        <select
+                          name="fromTerritoryId"
+                          required
+                          disabled={!canAttack}
+                          className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>
+                            Selecciona ciudad aliada conectada
+                          </option>
+                          {attackOrigins.map((territory) => (
+                            <option key={territory.id} value={territory.id}>
+                              {territory.name} · {Number(territory.soldiers ?? 0).toLocaleString("es-ES")} soldados · {Number(territory.mercenaries ?? 0).toLocaleString("es-ES")} merc.
+                            </option>
+                          ))}
+                        </select>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <label className="block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                            Soldados regulares
+                            <input
+                              type="number"
+                              name="amount"
+                              min="0"
+                              step="1"
+                              defaultValue="0"
+                              required
+                              disabled={!canAttack}
+                              className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                              placeholder="0"
+                            />
+                          </label>
+
+                          <label className="block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                            Mercenarios
+                            <input
+                              type="number"
+                              name="mercenariesAmount"
+                              min="0"
+                              step="1"
+                              defaultValue="0"
+                              disabled={!canAttack}
+                              className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                              placeholder="0"
+                            />
+                          </label>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={!canAttack || raidPending}
+                          className="mt-4 w-full border border-[#f59e0b] bg-black/70 px-5 py-3 text-xs font-black uppercase tracking-[0.25em] text-[#fff8ef] transition hover:bg-[#92400e] disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          {raidPending
+                            ? "Asaltando..."
+                            : !hasAttackOrigins
+                              ? "Sin origen conectado"
+                              : !hasAvailableAttackSoldiers
+                                ? "Sin tropas disponibles"
+                                : "Enviar asalto"}
                         </button>
                       </form>
                     </>
@@ -942,16 +1031,16 @@ export function MapaInteractivo({
                     </div>
                   )}
 
-                  {(scoutState.message || reinforceState.message || attackState.message) && (
+                  {(scoutState.message || reinforceState.message || attackState.message || raidState.message) && (
                     <div
                       className={[
                         "border p-4 text-sm leading-6",
-                        scoutState.ok || reinforceState.ok || attackState.ok
+                        scoutState.ok || reinforceState.ok || attackState.ok || raidState.ok
                           ? "border-[#3f6212] text-[#bef264]"
                           : "border-[#7f1d1d] text-[#fca5a5]",
                       ].join(" ")}
                     >
-                      {attackState.message || reinforceState.message || scoutState.message}
+                      {attackState.message || raidState.message || reinforceState.message || scoutState.message}
                     </div>
                   )}
 
