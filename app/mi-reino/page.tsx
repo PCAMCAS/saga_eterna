@@ -14,6 +14,7 @@ import { KingdomSidebarPanel } from "./kingdom-sidebar-panel";
 import { OrdersLogPanel } from "./orders-log-panel";
 import { DisputesIntelligencePanel } from "./disputes-intelligence-panel";
 import { EconomyPanel } from "./economy-panel";
+import { ResourceLogisticsPanel } from "./resource-logistics-panel";
 import { PrivateLogsPanel } from "./private-logs-panel";
 
 type Kingdom = {
@@ -122,6 +123,21 @@ type TerritoryEconomy = {
   barracks_level: number;
 };
 
+type ResourceMovement = {
+  id: string;
+  kingdom_id: string;
+  source_territory_id: string;
+  target_territory_id: string;
+  resource_type: "GOLD" | "FOOD";
+  amount: number;
+  status: "IN_TRANSIT" | "ARRIVED" | "CANCELLED";
+  departure_day: number;
+  departure_year: number;
+  arrival_day: number;
+  arrival_year: number;
+  arrival_tick?: number | null;
+};
+
 type BuildingOrder = {
   id: string;
   territory_id: string;
@@ -197,6 +213,7 @@ export default async function MiReinoPage({
   let scoutReports: ScoutReport[] = [];
   let territoryEconomy: TerritoryEconomy[] = [];
   let buildingOrders: BuildingOrder[] = [];
+  let resourceMovements: ResourceMovement[] = [];
   let privateLogs: PrivateLog[] = [];
   let soldierTrainingOrders: SoldierTrainingOrder[] = [];
   let occupiedKingdomIds = new Set<string>();
@@ -257,6 +274,7 @@ export default async function MiReinoPage({
       { data: actionData },
       { data: logData },
       { data: movementData },
+      { data: resourceMovementData },
       { data: disputeData },
       { data: disputeAttackerData },
       { data: scoutReportData },
@@ -296,6 +314,14 @@ export default async function MiReinoPage({
         .eq("status", "IN_TRANSIT")
         .eq("kingdom_id", profile?.kingdom_id ?? "00000000-0000-0000-0000-000000000000")
         .order("arrival_day", { ascending: true }),
+      supabase
+        .from("resource_movements")
+        .select(
+          "id, kingdom_id, source_territory_id, target_territory_id, resource_type, amount, status, departure_day, departure_year, arrival_day, arrival_year, arrival_tick",
+        )
+        .eq("kingdom_id", profile?.kingdom_id ?? "00000000-0000-0000-0000-000000000000")
+        .order("created_at", { ascending: false })
+        .limit(30),
       supabase
         .from("territory_disputes")
         .select(
@@ -354,6 +380,7 @@ export default async function MiReinoPage({
     scoutReports = (scoutReportData ?? []) as ScoutReport[];
     territoryEconomy = (territoryEconomyData ?? []) as TerritoryEconomy[];
     buildingOrders = (buildingOrderData ?? []) as BuildingOrder[];
+    resourceMovements = (resourceMovementData ?? []) as ResourceMovement[];
     privateLogs = (privateLogData ?? []) as PrivateLog[];
     soldierTrainingOrders = (soldierTrainingOrderData ?? []) as SoldierTrainingOrder[];
 
@@ -1028,6 +1055,13 @@ export default async function MiReinoPage({
                     economy={territoryEconomy}
                     buildingOrders={buildingOrders}
                     soldierTrainingOrders={soldierTrainingOrders}
+                  />
+
+                  <ResourceLogisticsPanel
+                    territories={ownedTerritories}
+                    economy={territoryEconomy}
+                    routes={allRoutes}
+                    movements={resourceMovements}
                   />
 
                   <PrivateLogsPanel logs={privateLogs} />

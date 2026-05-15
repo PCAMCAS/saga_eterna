@@ -711,3 +711,96 @@ export async function raidTerritory(
     message: result?.message ?? "No se pudo ordenar el asalto.",
   };
 }
+
+export async function sendResourceMovement(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      message: "Debes iniciar sesión.",
+    };
+  }
+
+  const sourceTerritoryId = String(formData.get("sourceTerritoryId") ?? "");
+  const targetTerritoryId = String(formData.get("targetTerritoryId") ?? "");
+  const resourceType = String(formData.get("resourceType") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+
+  if (!sourceTerritoryId || !targetTerritoryId) {
+    return {
+      ok: false,
+      message: "Debes seleccionar origen y destino.",
+    };
+  }
+
+  if (sourceTerritoryId === targetTerritoryId) {
+    return {
+      ok: false,
+      message: "El origen y el destino deben ser distintos.",
+    };
+  }
+
+  if (resourceType !== "GOLD" && resourceType !== "FOOD") {
+    return {
+      ok: false,
+      message: "Debes seleccionar oro o comida.",
+    };
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return {
+      ok: false,
+      message: "La cantidad debe ser mayor que 0.",
+    };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("kingdom_id")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile?.kingdom_id) {
+    return {
+      ok: false,
+      message: "No tienes un reino seleccionado.",
+    };
+  }
+
+  const { data, error } = await supabase.rpc("send_resource_movement_atomic", {
+    p_kingdom_id: profile.kingdom_id,
+    p_source_territory_id: sourceTerritoryId,
+    p_target_territory_id: targetTerritoryId,
+    p_resource_type: resourceType,
+    p_amount: Math.floor(amount),
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message,
+    };
+  }
+
+  const result = data as {
+    ok?: boolean;
+    message?: string;
+  } | null;
+
+  revalidatePath("/mi-reino");
+  revalidatePath("/mapa");
+  revalidatePath("/registro-global");
+
+  return {
+    ok: Boolean(result?.ok),
+    message: result?.message ?? "Transporte enviado.",
+  };
+}
