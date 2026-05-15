@@ -189,7 +189,7 @@ function CityEconomyCard({
         </p>
       </div>
 
-      <div className="grid gap-4 p-5 md:grid-cols-3">
+      <div className="grid gap-4 p-5 sm:grid-cols-3">
         <ResourceBox
           label="Oro"
           value={entry.gold}
@@ -385,7 +385,7 @@ export function EconomyPanel({
               />
             </div>
 
-            <div className="grid gap-6 p-6 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="grid gap-6 p-6">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.35em] text-[#d83a3a]">
                   Mejoras de edificios
@@ -407,7 +407,7 @@ export function EconomyPanel({
                 </div>
               </div>
 
-              <div className="grid gap-5">
+              <div className="grid gap-5 xl:grid-cols-2">
                 <MercenaryPurchasePanel
                   capitalId={primaryCapital.id}
                   capitalName={primaryCapital.name}
@@ -431,7 +431,7 @@ export function EconomyPanel({
       </div>
 
       {cities.length > 0 && (
-        <div className="grid gap-5 xl:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
           {cities.map((territory) => {
             const entry = getEconomyEntry(territory.id, economy);
             const pendingBuildingTypes = pendingTypesForTerritory(
