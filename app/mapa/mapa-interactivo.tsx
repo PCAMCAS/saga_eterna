@@ -783,24 +783,41 @@ export function MapaInteractivo({
                         </option>
                         {reinforcementOrigins.map((territory) => (
                           <option key={territory.id} value={territory.id}>
-                            {territory.name} · {Number(territory.soldiers ?? 0).toLocaleString("es-ES")} soldados
+                            {territory.name} · {Number(territory.soldiers ?? 0).toLocaleString("es-ES")} soldados · {Number(territory.mercenaries ?? 0).toLocaleString("es-ES")} merc.
                           </option>
                         ))}
                       </select>
 
-                      <label className="mt-4 block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
-                        Soldados
-                      </label>
-                      <input
-                        type="number"
-                        name="amount"
-                        min="1"
-                        step="1"
-                        required
-                        disabled={!canReinforce}
-                        className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Cantidad"
-                      />
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <label className="block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                          Soldados regulares
+                          <input
+                            type="number"
+                            name="amount"
+                            min="0"
+                            step="1"
+                            defaultValue="0"
+                            required
+                            disabled={!canReinforce}
+                            className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="0"
+                          />
+                        </label>
+
+                        <label className="block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                          Mercenarios
+                          <input
+                            type="number"
+                            name="mercenariesAmount"
+                            min="0"
+                            step="1"
+                            defaultValue="0"
+                            disabled={!canReinforce}
+                            className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="0"
+                          />
+                        </label>
+                      </div>
 
                       <button
                         type="submit"
@@ -868,24 +885,41 @@ export function MapaInteractivo({
                           </option>
                           {attackOrigins.map((territory) => (
                             <option key={territory.id} value={territory.id}>
-                              {territory.name} · {Number(territory.soldiers ?? 0).toLocaleString("es-ES")} soldados
+                              {territory.name} · {Number(territory.soldiers ?? 0).toLocaleString("es-ES")} soldados · {Number(territory.mercenaries ?? 0).toLocaleString("es-ES")} merc.
                             </option>
                           ))}
                         </select>
 
-                        <label className="mt-4 block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
-                          Soldados
-                        </label>
-                        <input
-                          type="number"
-                          name="amount"
-                          min="1"
-                          step="1"
-                          required
-                          disabled={!canAttack}
-                          className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
-                          placeholder="Cantidad"
-                        />
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <label className="block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                            Soldados regulares
+                            <input
+                              type="number"
+                              name="amount"
+                              min="0"
+                              step="1"
+                              defaultValue="0"
+                              required
+                              disabled={!canAttack}
+                              className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                              placeholder="0"
+                            />
+                          </label>
+
+                          <label className="block text-xs font-black uppercase tracking-[0.2em] text-[#d7c9bd]">
+                            Mercenarios
+                            <input
+                              type="number"
+                              name="mercenariesAmount"
+                              min="0"
+                              step="1"
+                              defaultValue="0"
+                              disabled={!canAttack}
+                              className="mt-2 w-full border border-[#3a0c12] bg-black/70 px-3 py-3 text-sm text-[#fff8ef] outline-none transition focus:border-[#c3222b] disabled:cursor-not-allowed disabled:opacity-50"
+                              placeholder="0"
+                            />
+                          </label>
+                        </div>
 
                         <button
                           type="submit"
